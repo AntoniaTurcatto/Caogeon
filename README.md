@@ -1,5 +1,5 @@
 # Caogeon
-Plataforma de criação de jogos baseado em relacionamento, escolhas e interações
+Plataforma de criação de jogos que usa python como linguagem de script
 
 ## Módulos
  
