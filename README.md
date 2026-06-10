@@ -3,7 +3,7 @@ Plataforma de criação de jogos baseado em relacionamento, escolhas e interaç�
 
 ## Módulos
  
-### `engine/` 
+### engine/
 Runtime que lê o model e executa o jogo. Expõe uma API pública que scripts customizados podem chamar. 
  
 | Folder | Responsibility |
@@ -12,9 +12,7 @@ Runtime que lê o model e executa o jogo. Expõe uma API pública que scripts cu
 | `loop/` | Controla tick, ordem de execução e estado|
 | `loader/` | Lê o model, instancia entidadaes, liga scripts e registra seus callbacks na API|
  
----
- 
-### `editor/`
+### editor/
 Ferramenta para edição do projeto, lê e escreve no model.
  
 | File / Folder | Responsibility |
@@ -23,9 +21,7 @@ Ferramenta para edição do projeto, lê e escreve no model.
 | `panels/` | Regiões UI individuais para manipular o model |
 | `dialogs/` | Janelas modais para ações pontuais (novo projeto, excluir, salvar como, etc) |
  
----
- 
-### `model/`
+### model/
 O estado persistido de um projeto de um jogo. Contém somente dados, sem lógica de execução. É manipulado pelo editor e uutilizado pela engine no loader. 
 
 | Folder | Contents |
@@ -33,16 +29,10 @@ O estado persistido de um projeto de um jogo. Contém somente dados, sem lógica
 | `assets/` | Assets do jogo |
 | `entities/` | Definição de entidades (nome, referencia de sprites, binding de scripts customizados) |
 | `scenes/` | Definição de cenas (localização de entidades, camera, etc) |
-| `scripts/` | Scripts do usuário |
- 
----
- 
-### `player/`
- 
-Renderiza o jogo consumindo a engine a cada tick disparado por ela. Não contém lógica do jogo. Recebe input do usuário e informa a engine via `api/io/`.
- 
----
+| `scripts/` | Scripts do usuário | 
 
+### player/ 
+Renderiza o jogo consumindo a engine a cada tick disparado por ela. Não contém lógica do jogo. Recebe input do usuário e informa a engine via `api/io/`. 
 
 --- 
 # Projeto exemplo
