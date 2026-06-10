@@ -3,7 +3,7 @@ Plataforma de criação de jogos que usa python como linguagem de script
 
 ## Módulos
  
-### engine/
+### runtime/
 Runtime que lê o model e executa o jogo. Expõe uma API pública que scripts customizados podem chamar. 
  
 | Folder | Responsibility |
@@ -11,6 +11,7 @@ Runtime que lê o model e executa o jogo. Expõe uma API pública que scripts cu
 | `api/` | Expõe métodos que scripts do usuário podem chamar |
 | `loop/` | Controla tick, ordem de execução e estado|
 | `loader/` | Lê o model, instancia entidadaes, liga scripts e registra seus callbacks na API|
+| `io/` | Funções e classes de IO internas|
  
 ### editor/
 Ferramenta para edição do projeto, lê e escreve no model.
