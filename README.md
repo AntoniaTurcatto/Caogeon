@@ -1,15 +1,48 @@
 # Caogeon
 Plataforma de criação de jogos baseado em relacionamento, escolhas e interações
 
-## Estrurura de pastas:
-### editor 
-arquivos do editor do projeto do jogo
-### model
-arquivos base do projeto (personagens, assets, scripts customizados(futuramente))
-### engine
-nterpretador da aplicação, é o que roda o jogo criado pelo usuário e expõe dados do estado atual
-### player
-Exibição do jogo, consome a engine
+## Módulos
+ 
+### `engine/` 
+Runtime que lê o model e executa o jogo. Expõe uma API pública que scripts customizados podem chamar. 
+ 
+| Folder | Responsibility |
+|--------|----------------|
+| `api/` | Expõe métodos que scripts do usuário podem chamar |
+| `loop/` | Controla tick, ordem de execução e estado|
+| `loader/` | Lê o model, instancia entidadaes, liga scripts e registra seus callbacks na API|
+ 
+---
+ 
+### `editor/`
+Ferramenta para edição do projeto, lê e escreve no model.
+ 
+| File / Folder | Responsibility |
+|---------------|----------------|
+| `main_window.py` | Ponto de entrada da aplicação|
+| `panels/` | Regiões UI individuais para manipular o model |
+| `dialogs/` | Janelas modais para ações pontuais (novo projeto, excluir, salvar como, etc) |
+ 
+---
+ 
+### `model/`
+O estado persistido de um projeto de um jogo. Contém somente dados, sem lógica de execução. É manipulado pelo editor e uutilizado pela engine no loader. 
+
+| Folder | Contents |
+|--------|----------|
+| `assets/` | Assets do jogo |
+| `entities/` | Definição de entidades (nome, referencia de sprites, binding de scripts customizados) |
+| `scenes/` | Definição de cenas (localização de entidades, camera, etc) |
+| `scripts/` | Scripts do usuário |
+ 
+---
+ 
+### `player/`
+ 
+Renderiza o jogo consumindo a engine a cada tick disparado por ela. Não contém lógica do jogo. Recebe input do usuário e informa a engine via `api/io/`.
+ 
+---
+
 
 --- 
 # Projeto exemplo
