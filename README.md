@@ -10,7 +10,7 @@ Runtime que lê o model e executa o jogo. Expõe uma API pública que scripts cu
 |--------|----------------|
 | `api/` | Expõe métodos que scripts do usuário podem chamar |
 | `loop/` | Controla tick, ordem de execução e estado|
-| `loader/` | Lê o model, instancia entidadaes, liga scripts e registra seus callbacks na API|
+| `loader/` | Lê o model, instancia entidades, liga scripts e registra seus callbacks na API|
 | `io/` | Funções e classes de IO internas|
  
 ### editor/
@@ -23,7 +23,7 @@ Ferramenta para edição do projeto, lê e escreve no model.
 | `dialogs/` | Janelas modais para ações pontuais (novo projeto, excluir, salvar como, etc) |
  
 ### model/
-O estado persistido de um projeto de um jogo. É manipulado pelo editor e utilizado pelo submódulo api/loader. 
+O estado persistido de um projeto de um jogo. É manipulado pelo editor e utilizado pelo submódulo runtime/loader. 
 
 | Folder | Contents |
 |--------|----------|
