@@ -104,8 +104,8 @@ ___
     {
       "id":"meu buneco 2",
       "entity_name": "meu buneco",
-      "relative_x": 25,
-      "relative_y": 30
+      "relative_x": 205,
+      "relative_y": 210
     }
   ]
 }
