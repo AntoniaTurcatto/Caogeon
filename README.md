@@ -66,6 +66,8 @@ ___
 {
   "unique_name": "meu buneco",
   "sprite_name": "imagem legal",
+  "width": 5,
+  "height": 10,
   "script_path": "file_inside_scripts.py",
   "events": [
     {
@@ -87,7 +89,9 @@ ___
 ### scenes
 ```
   "scene_unique_name": "level01",
-  "background": "image_asset_name"
+  "background": "image_asset_name",
+  "width": 5,
+  "height": 10,
   "entities": [ 
     {
       "id":"meu buneco 1",
@@ -101,8 +105,7 @@ ___
       "relative_x": 25,
       "relative_y": 30
     }
-   
-  ],
+  ]
 ```
 
 ### other folders
