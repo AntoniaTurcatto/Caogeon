@@ -27,12 +27,86 @@ O estado persistido de um projeto de um jogo. É manipulado pelo editor e utiliz
 
 | Folder | Contents |
 |--------|----------|
-| `assets/` | Assets do jogo |
+| `assets/` | Assets do jogo em .json |
 | `entities/` | Definição de entidades (nome, referencia de sprites, binding de scripts customizados) |
 | `scenes/` | Definição de cenas (localização de entidades, camera, etc) |
 | `scripts/` | Scripts do usuário | 
+| `assets_bin/` | arquivos dos assets|
 
 ### player/ 
 Renderiza o jogo consumindo o runtime a cada tick disparado por ele. Não contém lógica do jogo. Também recebe input do usuário e informa ao runtime via `api/io/`. 
+
+___ 
+## Arquivos do model (arquivos do projeto)
+### model/project.json
+```
+{
+  "project_name": "Caogeon Demo Game",
+  "engine_version": "1.0.0",
+  "window": {
+    "title": "Janela do Jogo",
+    "width": 800,
+    "height": 600,
+    "target_fps": 60
+  },
+  "initial_scene": "level01"
+}
+```
+
+### model/assets
+```
+{
+  "unique_name": "imagem legal",
+  "path": "file_inside_assets_bin.jpg"
+}
+```
+
+### model/entities
+```
+{
+  "unique_name": "meu buneco",
+  "sprite_name": "imagem legal",
+  "script_path": "file_inside_scripts.py",
+  "events": [
+    {
+      "trigger": "on_spawn",
+      "handler": "inicializar_personagem"
+    },
+    {
+      "trigger": "on_click",
+      "handler": "ao_clicar_no_boneco"
+    },
+    {
+      "trigger": "on_collision",
+      "handler": "processar_colisao"
+    }
+  ]
+}
+```
+
+### scenes
+```
+  "scene_unique_name": "level01",
+  "background": "image_asset_name"
+  "entities": [ 
+    {
+      "id":"meu buneco 1",
+      "entity_name": "meu buneco",
+      "relative_x": 25,
+      "relative_y": 30
+    },
+    {
+      "id":"meu buneco 2",
+      "entity_name": "meu buneco",
+      "relative_x": 25,
+      "relative_y": 30
+    }
+   
+  ],
+```
+
+### other folders
+files to support the model itself
+___ 
 
 [projeto exemplo](/example/docs)
