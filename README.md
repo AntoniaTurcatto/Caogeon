@@ -28,10 +28,11 @@ O estado persistido de um projeto de um jogo. É manipulado pelo editor e utiliz
 | Folder | Contents |
 |--------|----------|
 | `assets/` | Assets do jogo em .json |
+| `assets_files/` | arquivos dos assets |
 | `entities/` | Definição de entidades (nome, referencia de sprites, binding de scripts customizados) |
 | `scenes/` | Definição de cenas (localização de entidades, camera, etc) |
 | `scripts/` | Scripts do usuário | 
-| `assets_bin/` | arquivos dos assets|
+
 
 ### player/ 
 Renderiza o jogo consumindo o runtime a cada tick disparado por ele. Não contém lógica do jogo. Também recebe input do usuário e informa ao runtime via `api/io/`. 
@@ -49,7 +50,7 @@ ___
     "height": 600,
     "target_fps": 60
   },
-  "initial_scene": "level01"
+  "initial_scene_name": "level01"
 }
 ```
 
@@ -57,7 +58,7 @@ ___
 ```
 {
   "unique_name": "imagem legal",
-  "path": "file_inside_assets_bin.jpg"
+  "path": "file_inside_assets_file.jpg"
 }
 ```
 
@@ -88,7 +89,8 @@ ___
 
 ### scenes
 ```
-  "scene_unique_name": "level01",
+{
+  "unique_name": "level01",
   "background": "image_asset_name",
   "width": 5,
   "height": 10,
@@ -106,6 +108,7 @@ ___
       "relative_y": 30
     }
   ]
+}
 ```
 
 ### other folders
