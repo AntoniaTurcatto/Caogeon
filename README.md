@@ -115,4 +115,7 @@ ___
 files to support the model itself
 ___ 
 
+## Docs and api
+[cageon_docs](/docs)
+
 [projeto exemplo](/example/docs)
