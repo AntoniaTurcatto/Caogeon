@@ -14,7 +14,7 @@ Runtime que lê o model e executa o jogo. Expõe uma API pública que scripts cu
 | `io/` | Funções e classes de IO internas|
  
 ### editor/
-Ferramenta para edição do projeto, lê e escreve no model.
+Ferramenta para edição do projeto, lê e escreve no model através do /project .
  
 | File / Folder | Responsibility |
 |---------------|----------------|
