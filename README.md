@@ -23,9 +23,10 @@ Ferramenta para edição do projeto, lê e escreve no model através do /project
 | `dialogs/` | Janelas modais para ações pontuais (novo projeto, excluir, salvar como, etc) |
  
 ### project/
+utilizado pelo editor e pelo runtime/poder para carregar e manipular estado do projeto
 
 ### project_files/
-O estado persistido de um projeto de um jogo. É manipulado pelo editor e utilizado pelo submódulo runtime/loader. 
+O estado persistido de um projeto de um jogo. É manipulado pelo /project. 
 
 | Folder | Contents |
 |--------|----------|
