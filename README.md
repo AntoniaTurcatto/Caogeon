@@ -22,7 +22,9 @@ Ferramenta para edição do projeto, lê e escreve no model.
 | `panels/` | Regiões UI individuais para manipular o model |
 | `dialogs/` | Janelas modais para ações pontuais (novo projeto, excluir, salvar como, etc) |
  
-### model/
+### project/
+
+### project_files/
 O estado persistido de um projeto de um jogo. É manipulado pelo editor e utilizado pelo submódulo runtime/loader. 
 
 | Folder | Contents |
@@ -38,8 +40,8 @@ O estado persistido de um projeto de um jogo. É manipulado pelo editor e utiliz
 Renderiza o jogo consumindo o runtime a cada tick disparado por ele. Não contém lógica do jogo. Também recebe input do usuário e informa ao runtime via `api/io/`. 
 
 ___ 
-## Arquivos do model (arquivos do projeto)
-### model/project.json
+## Arquivos do project_files (arquivos do projeto)
+### project_files/project.json
 ```
 {
   "project_name": "Caogeon Demo Game",
@@ -54,7 +56,7 @@ ___
 }
 ```
 
-### model/assets
+### project_files/assets
 ```
 {
   "unique_name": "imagem legal",
@@ -62,7 +64,7 @@ ___
 }
 ```
 
-### model/entities
+### project_files/entities
 ```
 {
   "unique_name": "meu buneco",
@@ -87,7 +89,7 @@ ___
 }
 ```
 
-### scenes
+### project_files/scenes
 ```
 {
   "unique_name": "level01",
@@ -112,7 +114,7 @@ ___
 ```
 
 ### other folders
-files to support the model itself
+files to support the project itself
 ___ 
 
 ## Docs and api
