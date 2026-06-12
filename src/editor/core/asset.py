@@ -12,25 +12,23 @@ class AssetManager(Manager):
         self.create_folder(self.project_paths.assets_dir)
         self.create_folder(self.project_paths.assets_files_dir)
 
-
 class Asset:
     def __init__(self, unique_name: str, path: Path):
        self.unique_name = unique_name
        self.path = path
 
-
 class AssetSerializer(DataSerializer):
     def to_dict(self, asset: Asset) -> dict:
         data = {
             "unique_name": asset.unique_name,
-            "path": asset.path,
+            "path": str(asset.path),
         }
         return data
 
     def from_dict(self, data: dict) -> Asset:
         return Asset(
             unique_name=data["unique_name"],
-            path=data.get("path", ""),
+            path=Path(data.get("path", "")),
         )
 
     def save_to_file(self, asset: Asset, filepath: Path) -> None:
