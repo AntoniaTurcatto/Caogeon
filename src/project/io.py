@@ -5,7 +5,7 @@ import shutil
 
 class DataSerializer(ABC):
     @abstractmethod
-    def load_from_file(self, obj) -> Any:
+    def load_from_file(self, filepath: Path) -> Any | None:
         pass
     
     @abstractmethod
@@ -23,8 +23,9 @@ class ProjectPaths:
         self.project_file = Path(self.root / "model" / "project.json")
 
 class Manager:
-    def __init__(self, project_paths: ProjectPaths) -> None:
-        self.project_paths = project_paths
+    def __init__(self, project_paths: ProjectPaths, serializer: DataSerializer) -> None:
+        self.project_paths = project_paths]
+        self.serializer = serializer
 
     def clear_folders(self, folders: list[Path]):
         for folder in folders:
