@@ -31,7 +31,7 @@ class JSONSerializer(SerializeStrategy):
         return json.loads(data)
 
 class DataSerializer:
-    def __init__(self, obj_parser: ObjParserStrategy, serializer: SerializeStrategy,) -> None:
+    def __init__(self, obj_parser: ObjParserStrategy, serializer: SerializeStrategy) -> None:
         self.serializer = serializer
         self.parser = obj_parser
 
