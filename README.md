@@ -22,13 +22,16 @@ Ferramenta para edição do projeto, lê e escreve no model através do /project
 | `panels/` | Regiões UI individuais para manipular o model |
 | `dialogs/` | Janelas modais para ações pontuais (novo projeto, excluir, salvar como, etc) |
  
-### model/
+### core/
 utilizado pelo editor e pelo runtime/loader para carregar e manipular estado do projeto
 | File / Folder | Responsibility |
 |---------------|----------------|
-|`core`| Classes base|
-|`managers`| Contém os Managers para converter arquivos do project_files em entidades do core|
-|`serializers`| Serializadores utilizados por managers|
+|`model`| Classes base|
+|`managers`| Contém classe abstrata que Managers devem implementar e caminhos dos arquivos de projeto|
+|`serializers`| Serializadores de arquivo e e parsers Any<->dict são implementados posteriormente|
+|`registers`| registro de instancias de certo tipo, usado para mapear nome->instancia nos parsers |
+|`asset_manager`| Manager e parser de assets |
+|`entity_manager`| Manager e parser de assets |
 
 ### project_files/
 O estado persistido de um projeto de um jogo. É manipulado pelo /model. 
