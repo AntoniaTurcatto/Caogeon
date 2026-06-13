@@ -31,7 +31,7 @@ utilizado pelo editor e pelo runtime/loader para carregar e manipular estado do 
 |`serializers`| Serializadores de arquivo e e parsers Any<->dict são implementados posteriormente|
 |`registers`| registro de instancias de certo tipo, usado para mapear nome->instancia nos parsers |
 |`asset_manager`| Manager e parser de assets |
-|`entity_manager`| Manager e parser de assets |
+|`entity_manager`| Manager e parser de entidades |
 
 ### project_files/
 O estado persistido de um projeto de um jogo. É manipulado pelo /model. 
