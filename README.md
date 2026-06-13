@@ -66,27 +66,21 @@ ___
 ```
 
 ### project_files/entities
+Assinatura dos hooks: def nome(ctx, arg), na qual ctx é a instancia em runtime, arg é o argumento passado pelo evento
+exemplo: `ctx.state["vida"] = int(arg)`
+O usuário deve ser cuidadoso ao que passa para cada evento
 ```
 {
   "unique_name": "meu buneco",
   "sprite_name": "imagem legal",
   "width": 5,
   "height": 10,
-  "script_path": "file_inside_scripts.py",
-  "events": [
-    {
-      "trigger": "on_spawn",
-      "handler": "inicializar_personagem"
-    },
-    {
-      "trigger": "on_click",
-      "handler": "ao_clicar_no_boneco"
-    },
-    {
-      "trigger": "on_collision",
-      "handler": "processar_colisao"
-    }
-  ]
+  "script_path": "script.py",
+  "variables": { "vida": 100, "velocidade": 5 },
+  "hooks": {
+    "on_spawn": "function within script.py",
+    "on_click": "function within script.py"
+  }
 }
 ```
 
