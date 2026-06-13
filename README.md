@@ -45,7 +45,7 @@ ___
 ### project_files/project.json
 ```
 {
-  "project_name": "Caogeon Demo Game",
+  "name": "Caogeon Demo Game",
   "engine_version": "1.0.0",
   "window": {
     "title": "Janela do Jogo",
@@ -101,14 +101,14 @@ ___
     {
       "id":"meu buneco 1",
       "entity_name": "meu buneco",
-      "relative_x": 25,
-      "relative_y": 30
+      "x": 25,
+      "y": 30
     },
     {
       "id":"meu buneco 2",
       "entity_name": "meu buneco",
-      "relative_x": 205,
-      "relative_y": 210
+      "x": 205,
+      "y": 210
     }
   ]
 }
