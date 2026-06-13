@@ -10,7 +10,7 @@ Runtime que lê o model e executa o jogo. Expõe uma API pública que scripts cu
 |--------|----------------|
 | `api/` | Expõe métodos que scripts do usuário podem chamar |
 | `loop/` | Controla tick, ordem de execução e estado|
-| `loader/` | Lê o model, instancia entidades, liga scripts e registra seus callbacks na API|
+| `loader/` | Lê o model, instancia entidades, importa scripts, resolve hooks em Callables e registra entidades nas subscriptions do SceneRuntime|
 | `io/` | Funções e classes de IO internas|
  
 ### editor/
@@ -22,11 +22,16 @@ Ferramenta para edição do projeto, lê e escreve no model através do /project
 | `panels/` | Regiões UI individuais para manipular o model |
 | `dialogs/` | Janelas modais para ações pontuais (novo projeto, excluir, salvar como, etc) |
  
-### project/
-utilizado pelo editor e pelo runtime/poder para carregar e manipular estado do projeto
+### model/
+utilizado pelo editor e pelo runtime/loader para carregar e manipular estado do projeto
+| File / Folder | Responsibility |
+|---------------|----------------|
+|`core`| Classes base|
+|`managers`| Contém os Managers para converter arquivos do project_files em entidades do core|
+|`serializers`| Serializadores utilizados por managers|
 
 ### project_files/
-O estado persistido de um projeto de um jogo. É manipulado pelo /project. 
+O estado persistido de um projeto de um jogo. É manipulado pelo /model. 
 
 | Folder | Contents |
 |--------|----------|
