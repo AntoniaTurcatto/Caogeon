@@ -1,2 +1,15 @@
+# Ambientes virtuais
 .env/
-.git
+.venv/
+env/
+venv/
+
+# Caches do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches de testes (pytest)
+.pytest_cache/
+.coverage
+htmlcov/
