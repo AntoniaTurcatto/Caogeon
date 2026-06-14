@@ -32,6 +32,8 @@ utilizado pelo editor e pelo runtime/loader para carregar e manipular estado do 
 |`registers`| registro de instancias de certo tipo, usado para mapear nome->instancia nos parsers |
 |`asset_manager`| Manager e parser de assets |
 |`entity_manager`| Manager e parser de entidades |
+| `scene_manager`   | Manager e parser de cenas e entidades instanciadas |
+| `project_manager` | Orquestra o carregamento/salvamento de todos os managers e parseia project.json |
 
 ### project_files/
 O estado persistido de um projeto de um jogo. É manipulado pelo /model. 
