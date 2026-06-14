@@ -1,64 +1,66 @@
 # Caogeon
-Plataforma de criação de jogos que usa python como linguagem de script
+A 2D game creation platform that uses Python as its scripting language
 
-## Módulos
- 
+## Modules
+
 ### runtime/
-Runtime que lê o model e executa o jogo. Expõe uma API pública que scripts customizados podem chamar. 
- 
+Reads the model and executes the game. Exposes a public API that custom scripts can call.
+
 | Folder | Responsibility |
 |--------|----------------|
-| `api/` | Expõe métodos que scripts do usuário podem chamar |
-| `loop/` | Controla tick, ordem de execução e estado|
-| `loader/` | Lê o model, instancia entidades, importa scripts, resolve hooks em Callables e registra entidades nas subscriptions do SceneRuntime|
-| `io/` | Funções e classes de IO internas|
- 
-### editor/
-Ferramenta para edição do projeto, lê e escreve no model através do /project .
- 
-| File / Folder | Responsibility |
-|---------------|----------------|
-| `main_window.py` | Ponto de entrada da aplicação|
-| `panels/` | Regiões UI individuais para manipular o model |
-| `dialogs/` | Janelas modais para ações pontuais (novo projeto, excluir, salvar como, etc) |
- 
-### core/
-utilizado pelo editor e pelo runtime/loader para carregar e manipular estado do projeto
-| File / Folder | Responsibility |
-|---------------|----------------|
-|`model`| Classes base|
-|`managers`| Contém classe abstrata que Managers devem implementar e caminhos dos arquivos de projeto|
-|`serializers`| Serializadores de arquivo e e parsers Any<->dict são implementados posteriormente|
-|`registers`| registro de instancias de certo tipo, usado para mapear nome->instancia nos parsers |
-|`asset_manager`| Manager e parser de assets |
-|`entity_manager`| Manager e parser de entidades |
-| `scene_manager`   | Manager e parser de cenas e entidades instanciadas |
-| `project_manager` | Orquestra o carregamento/salvamento de todos os managers e parseia project.json |
+| `api/` | Exposes methods that user scripts can call |
+| `loop/` | Controls tick, execution order and state |
+| `loader/` | Reads the model, instantiates entities, imports scripts, resolves hooks into Callables and registers entities into SceneRuntime subscriptions |
+| `io/` | Internal IO functions and classes |
 
-### project_files/
-O estado persistido de um projeto de um jogo. É manipulado pelo /model. 
+### editor/
+Tool for editing the project, reads and writes the model through `core/`.
+
+| File / Folder | Responsibility |
+|---------------|----------------|
+| `main_window.py` | Application entry point |
+| `panels/` | Individual UI regions for manipulating the model |
+| `dialogs/` | Modal windows for one-off actions (new project, delete, save as, etc) |
+
+### core/
+Used by the editor and runtime to load and manipulate project state.
+
+| File / Folder | Responsibility |
+|---------------|----------------|
+| `model` | Dataclasses representing project state in memory |
+| `managers` | Abstract classes that Managers must implement and project file paths (`ProjectPaths`) |
+| `serializers` | Serializers and parsers. Serializers and Serializing strategies must be implemented here, parsers within it's managers file |
+| `registers` | `Registry[T]`: maps `unique_name -> instance`, shared between managers for reference resolution |
+| `asset_manager` | Asset manager and parser |
+| `entity_manager` | Entity manager and parser |
+| `scene_manager` | Scene and instanced entity manager and parser |
+| `project_manager` | Orchestrates load/save across all managers and parses `project.json` |
+
+### project stucture:
+Persisted state of a game project. Manipulated by `core/` managers.
 
 | Folder | Contents |
 |--------|----------|
-| `assets/` | Assets do jogo em .json |
-| `assets_files/` | arquivos dos assets |
-| `entities/` | Definição de entidades (nome, referencia de sprites, binding de scripts customizados) |
-| `scenes/` | Definição de cenas (localização de entidades, camera, etc) |
-| `scripts/` | Scripts do usuário | 
+| `assets/` | Game assets as `.json` |
+| `assets_files/` | Physical asset files |
+| `entities/` | Entity definitions (name, sprite reference, variables, hooks) |
+| `scenes/` | Scene definitions (background, instanced entities and their positions) |
+| `scripts/` | User Python scripts |
 
+### player/
+Renders the game by consuming the runtime at each tick. Contains no game logic. Receives user input and forwards it to the runtime via `api/io/`.
 
-### player/ 
-Renderiza o jogo consumindo o runtime a cada tick disparado por ele. Não contém lógica do jogo. Também recebe input do usuário e informa ao runtime via `api/io/`. 
+---
 
-___ 
-## Arquivos do project_files (arquivos do projeto)
+## project_files format
+
 ### project_files/project.json
-```
+```json
 {
   "name": "Caogeon Demo Game",
   "engine_version": "1.0.0",
   "window": {
-    "title": "Janela do Jogo",
+    "title": "Game Window",
     "width": 800,
     "height": 600,
     "target_fps": 60
@@ -67,50 +69,51 @@ ___
 }
 ```
 
-### project_files/assets
-```
+### project_files/assets/
+```json
 {
-  "unique_name": "imagem legal",
-  "path": "file_inside_assets_file.jpg"
+  "unique_name": "cool_image",
+  "path": "assets_files/cool_image.jpg"
 }
 ```
 
-### project_files/entities
-Assinatura dos hooks: def nome(ctx, arg), na qual ctx é a instancia em runtime, arg é o argumento passado pelo evento
-exemplo: `ctx.state["vida"] = int(arg)`
-O usuário deve ser cuidadoso ao que passa para cada evento
-```
+### project_files/entities/
+All runtime communication with an entity is done by emitting a named message. The engine emits messages on the hooks declared by the entity, calling the corresponding function in the script.
+
+Hook signature: `def name(ctx, arg)`, where `ctx` is the runtime instance and `arg` is the argument passed by the event.
+
+Example: `ctx.state["health"] = int(arg)`
+
+```json
 {
-  "unique_name": "meu buneco",
-  "sprite_name": "imagem legal",
+  "unique_name": "my_character",
+  "sprite_name": "cool_image",
   "width": 5,
   "height": 10,
   "script_path": "script.py",
-  "variables": { "vida": 100, "velocidade": 5 },
+  "variables": { "health": 100, "speed": 5 },
   "hooks": {
-    "on_spawn": "function within script.py",
-    "on_click": "function within script.py"
+    "on_spawn": "initialize",
+    "on_click": "on_clicked"
   }
 }
 ```
 
-### project_files/scenes
-```
+### project_files/scenes/
+```json
 {
   "unique_name": "level01",
-  "background": "image_asset_name",
-  "width": 5,
-  "height": 10,
-  "entities": [ 
+  "background": "cool_image",
+  "entities": [
     {
-      "id":"meu buneco 1",
-      "entity_name": "meu buneco",
+      "id": "my_character_1",
+      "entity_name": "my_character",
       "x": 25,
       "y": 30
     },
     {
-      "id":"meu buneco 2",
-      "entity_name": "meu buneco",
+      "id": "my_character_2",
+      "entity_name": "my_character",
       "x": 205,
       "y": 210
     }
@@ -119,11 +122,12 @@ O usuário deve ser cuidadoso ao que passa para cada evento
 ```
 
 ### other folders
-files to support the project itself
-___ 
+Project support files (configuration, metadata, etc).
 
-## Docs and api
-[cageon_docs](/docs)
+---
+
+## Docs and API
+[caogeon_docs](/docs)
 
 ## Example project
-[projeto exemplo](/example/docs)
+[example project](/example)
