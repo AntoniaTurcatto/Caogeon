@@ -1,7 +1,7 @@
 from pathlib import Path
-from core.registers import Registry
+from .registers import Registry
 from .serializers import  DataSerializer, ObjParserStrategy, SerializeStrategy
-from .managers import Manager, ProjectPaths
+from .managers import Manager, ProjectPartsManager, ProjectPaths
 from .model import Asset
 
 class AssetParser(ObjParserStrategy[Asset]):
@@ -18,7 +18,7 @@ class AssetParser(ObjParserStrategy[Asset]):
             path=Path(data["path"])
         )
 
-class AssetManager(Manager):
+class AssetManager(ProjectPartsManager):
     def __init__(self,  serializer_strategy: SerializeStrategy) -> None:
         super().__init__(DataSerializer(AssetParser(), serializer_strategy))
         self.assets = Registry[Asset]()
@@ -36,3 +36,12 @@ class AssetManager(Manager):
         for asset in self.assets.all():
             filepath = project_paths.assets_dir / f"{asset.unique_name}.json"
             self.serializer.save_to_file(asset, filepath)
+    
+    def add(self, obj: Asset):
+        if self.assets.exists(obj.unique_name):
+            raise KeyError("Asset already existent")
+
+        self.assets.register(obj.unique_name, obj)
+    
+    def remove(self, unique_name: str):
+        self.assets.unregister(unique_name)

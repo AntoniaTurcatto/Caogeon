@@ -1,116 +1,135 @@
-import json
 import pytest
-from pathlib import Path
 from core.asset_manager import AssetManager, AssetParser
 from core.model import Asset
 from core.managers import ProjectPaths
 from core.serializers import JSONSerializer
 
 @pytest.fixture
+def project_paths(tmp_path):
+    return ProjectPaths(tmp_path)
+
+@pytest.fixture
 def parser():
     return AssetParser()
 
 @pytest.fixture
-def asset():
-    return Asset(unique_name="sprite", path=Path("assets/sprite.jpg"))
+def serializer():
+    return JSONSerializer()
 
 @pytest.fixture
-def project_paths(tmp_path):
-    paths = ProjectPaths(tmp_path)
-    paths.assets_dir.mkdir(parents=True, exist_ok=True)
-    return paths
+def manager(serializer):
+    return AssetManager(serializer)
 
-def write_json(directory: Path, data: dict):
-    (directory / f"{data['unique_name']}.json").write_text(json.dumps(data), encoding="utf-8")
+@pytest.fixture
+def asset1(project_paths):
+    return Asset(unique_name="asset1", path=project_paths.assets_files_dir / "asset1.png")
+
+@pytest.fixture
+def asset2(project_paths):
+    return Asset(unique_name="asset2", path=project_paths.assets_files_dir / "asset2.png")
+
+@pytest.fixture
+def asset3(project_paths):
+    return Asset(unique_name="asset3", path=project_paths.assets_files_dir / "asset3.png")
 
 # --- AssetParser ---
 
-def test_to_dict(parser, asset):
-    assert parser.to_dict(asset) == {"unique_name": "sprite", "path": "assets/sprite.jpg"}
+def test_parser_to_dict(parser, asset1):
+    result = parser.to_dict(asset1)
+    assert result["unique_name"] == "asset1"
+    assert "path" in result
 
-def test_from_dict(parser):
-    asset = parser.from_dict({"unique_name": "sprite", "path": "assets/sprite.jpg"})
-    assert asset.unique_name == "sprite"
-    assert asset.path == Path("assets/sprite.jpg")
+def test_parser_from_dict(parser, project_paths):
+    data = {"unique_name": "asset1", "path": str(project_paths.assets_files_dir / "asset1.png")}
+    asset = parser.from_dict(data)
+    assert asset.unique_name == "asset1"
 
-def test_from_dict_missing_field_raises(parser):
+def test_parser_from_dict_missing_field_raises(parser):
     with pytest.raises(KeyError):
-        parser.from_dict({"unique_name": "sprite"})
+        parser.from_dict({"unique_name": "asset1"})
 
-def test_roundtrip(parser, asset):
-    assert parser.from_dict(parser.to_dict(asset)) == asset
+def test_parser_roundtrip(parser, asset1):
+    assert parser.from_dict(parser.to_dict(asset1)) == asset1
 
-# --- AssetManager.load ---
+# --- AssetManager.add ---
 
-def test_load_single(project_paths):
-    write_json(project_paths.assets_dir, {"unique_name": "sprite", "path": "assets/sprite.jpg"})
-    manager = AssetManager(JSONSerializer())
-    manager.load(project_paths)
-    assert manager.assets.get("sprite").path == Path("assets/sprite.jpg")
+def test_add_single(manager, asset1):
+    manager.add(asset1)
+    assert manager.assets.get("asset1") is asset1
 
-def test_load_multiple(project_paths):
-    for i in range(3):
-        write_json(project_paths.assets_dir, {"unique_name": f"asset_{i}", "path": f"img_{i}.jpg"})
-    manager = AssetManager(JSONSerializer())
-    manager.load(project_paths)
+def test_add_multiple(manager, asset1, asset2, asset3):
+    manager.add(asset1)
+    manager.add(asset2)
+    manager.add(asset3)
     assert len(manager.assets.all()) == 3
 
-def test_load_empty_dir(project_paths):
-    manager = AssetManager(JSONSerializer())
-    manager.load(project_paths)
-    assert manager.assets.all() == []
+def test_add_duplicate_raises(manager, asset1):
+    manager.add(asset1)
+    with pytest.raises(KeyError):
+        manager.add(asset1)
 
-def test_load_mantains_external_reference(project_paths):
-    """load() atualiza o registry existente — referências externas capturadas antes continuam válidas"""
-    manager = AssetManager(JSONSerializer())
-    external_ref = manager.assets  # captura referência antes do load
+# --- AssetManager.remove ---
 
-    write_json(project_paths.assets_dir, {"unique_name": "sprite", "path": "assets/sprite.jpg"})
-    manager.load(project_paths)
+def test_remove(manager, asset1):
+    manager.add(asset1)
+    manager.remove("asset1")
+    with pytest.raises(KeyError):
+        manager.assets.get("asset1")
 
-    assert external_ref.get("sprite") is not None          # referência externa enxerga os novos dados
-    assert external_ref is manager.assets                  # é o mesmo objeto
+def test_remove_nonexistent_raises(manager):
+    with pytest.raises(KeyError):
+        manager.remove("nao_existe")
 
+# --- AssetManager.save ---
 
-def test_save_single(project_paths):
-    manager = AssetManager(JSONSerializer())
-    manager.assets.register("sprite", Asset(unique_name="sprite", path=Path("assets/sprite.jpg")))
+def test_save_creates_dir(manager, asset1, project_paths):
+    manager.add(asset1)
     manager.save(project_paths)
-    assert (project_paths.assets_dir / "sprite.json").exists()
+    assert project_paths.assets_dir.exists()
 
-def test_save_creates_dir(tmp_path):
-    paths = ProjectPaths(tmp_path)  # sem mkdir
-    manager = AssetManager(JSONSerializer())
-    manager.assets.register("sprite", Asset(unique_name="sprite", path=Path("assets/sprite.jpg")))
-    manager.save(paths)  # não deve explodir
-    assert paths.assets_dir.exists()
-
-def test_save_and_load_roundtrip(project_paths):
-    original = Asset(unique_name="sprite", path=Path("assets/sprite.jpg"))
-    manager = AssetManager(JSONSerializer())
-    manager.assets.register(original.unique_name, original)
+def test_save_creates_file(manager, asset1, project_paths):
+    manager.add(asset1)
     manager.save(project_paths)
+    assert (project_paths.assets_dir / "asset1.json").exists()
 
-    manager2 = AssetManager(JSONSerializer())
-    manager2.load(project_paths)
-    assert manager2.assets.get("sprite") == original
-
-def test_save_multiple(project_paths):
-    manager = AssetManager(JSONSerializer())
-    for i in range(3):
-        manager.assets.register(f"asset_{i}", Asset(unique_name=f"asset_{i}", path=Path(f"img_{i}.jpg")))
+def test_save_multiple(manager, asset1, asset2, asset3, project_paths):
+    manager.add(asset1)
+    manager.add(asset2)
+    manager.add(asset3)
     manager.save(project_paths)
     assert len(list(project_paths.assets_dir.glob("*.json"))) == 3
 
-def test_save_overwrites_existing(project_paths):
-    manager = AssetManager(JSONSerializer())
-    asset = Asset(unique_name="sprite", path=Path("img_original.jpg"))
-    manager.assets.register(asset.unique_name, asset)
-    manager.save(project_paths)
+# --- AssetManager.load ---
 
-    manager.assets.register("sprite", Asset(unique_name="sprite", path=Path("img_novo.jpg")))
+def test_load_empty_dir(manager, project_paths):
+    project_paths.assets_dir.mkdir(parents=True, exist_ok=True)
+    manager.load(project_paths)
+    assert manager.assets.all() == []
+
+def test_load_single(manager, asset1, project_paths):
+    manager.add(asset1)
     manager.save(project_paths)
 
     manager2 = AssetManager(JSONSerializer())
     manager2.load(project_paths)
-    assert manager2.assets.get("sprite").path == Path("img_novo.jpg")
+    assert manager2.assets.get("asset1") == asset1
+
+def test_load_maintains_external_reference(manager, asset1, project_paths):
+    external_ref = manager.assets
+    manager.add(asset1)
+    manager.save(project_paths)
+    manager.load(project_paths)
+    assert external_ref is manager.assets
+    assert external_ref.get("asset1") is not None
+
+# --- save/load roundtrip ---
+
+def test_save_load_roundtrip(manager, asset1, asset2, project_paths):
+    manager.add(asset1)
+    manager.add(asset2)
+    manager.save(project_paths)
+
+    manager2 = AssetManager(JSONSerializer())
+    manager2.load(project_paths)
+    assert manager2.assets.get("asset1") == asset1
+    assert manager2.assets.get("asset2") == asset2

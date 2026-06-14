@@ -1,7 +1,7 @@
 from core.model import Asset, Entity, InstancedEntity, Scene
 from core.registers import Registry
 from core.serializers import DataSerializer, ObjParserStrategy, SerializeStrategy
-from .managers import Manager, ProjectPaths
+from .managers import Manager, ProjectPartsManager, ProjectPaths
 
 class InstancedEntityParser(ObjParserStrategy[InstancedEntity]):
     def __init__(self, entities: Registry[Entity]) -> None:
@@ -47,7 +47,7 @@ class SceneParser(ObjParserStrategy[Scene]):
 
 
 
-class SceneManager(Manager):
+class SceneManager(ProjectPartsManager):
     def __init__(self, 
                 serializer_strategy: SerializeStrategy, 
                  assets: Registry[Asset], 
@@ -68,3 +68,12 @@ class SceneManager(Manager):
         for scene in self.scenes.all():
             filepath = project_paths.scenes_dir / f"{scene.unique_name}.json"
             self.serializer.save_to_file(scene, filepath)
+
+    def add(self, obj: Scene):
+        if self.scenes.exists(obj.unique_name):
+            raise KeyError("Scene already existent")
+
+        self.scenes.register(obj.unique_name, obj)
+    
+    def remove(self, unique_name: str):
+        self.scenes.unregister(unique_name)

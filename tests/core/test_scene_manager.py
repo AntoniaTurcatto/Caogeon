@@ -8,8 +8,16 @@ from core.managers import ProjectPaths
 from core.serializers import JSONSerializer
 
 @pytest.fixture
-def asset():
-    return Asset(unique_name="bg", path=Path("assets/bg.jpg"))
+def project_paths(tmp_path):
+    return ProjectPaths(tmp_path)
+
+@pytest.fixture
+def serializer():
+    return JSONSerializer()
+
+@pytest.fixture
+def asset(project_paths):
+    return Asset(unique_name="bg", path=project_paths.assets_files_dir / "bg.png")
 
 @pytest.fixture
 def assets(asset):
@@ -32,29 +40,36 @@ def entities(entity):
     return r
 
 @pytest.fixture
-def scene(asset, entity):
-    return Scene(
-        unique_name="level01", background=asset,
-        entities=[InstancedEntity(id="buneco_1", entity=entity, x=25, y=30)],
-    )
+def manager(serializer, assets, entities):
+    return SceneManager(serializer, assets, entities)
 
 @pytest.fixture
-def project_paths(tmp_path):
-    paths = ProjectPaths(tmp_path)
-    paths.scenes_dir.mkdir(parents=True, exist_ok=True)
-    return paths
+def instanced1(entity):
+    return InstancedEntity(id="buneco_1", entity=entity, x=25, y=30)
+
+@pytest.fixture
+def instanced2(entity):
+    return InstancedEntity(id="buneco_2", entity=entity, x=100, y=200)
+
+@pytest.fixture
+def scene1(asset, instanced1):
+    return Scene(unique_name="level01", background=asset, entities=[instanced1])
+
+@pytest.fixture
+def scene2(asset, instanced2):
+    return Scene(unique_name="level02", background=asset, entities=[instanced2])
 
 # --- InstancedEntityParser ---
 
-def test_instanced_to_dict(entities, entity):
+def test_instanced_to_dict(entities, instanced1):
     parser = InstancedEntityParser(entities)
-    result = parser.to_dict(InstancedEntity(id="b1", entity=entity, x=25, y=30))
-    assert result == {"id": "b1", "entity_name": "meu_buneco", "x": 25, "y": 30}
+    result = parser.to_dict(instanced1)
+    assert result == {"id": "buneco_1", "entity_name": "meu_buneco", "x": 25, "y": 30}
 
 def test_instanced_from_dict_resolves_entity(entities, entity):
     parser = InstancedEntityParser(entities)
-    instanced = parser.from_dict({"id": "b1", "entity_name": "meu_buneco", "x": 25, "y": 30})
-    assert instanced.entity is entity
+    result = parser.from_dict({"id": "b1", "entity_name": "meu_buneco", "x": 25, "y": 30})
+    assert result.entity is entity
 
 def test_instanced_from_dict_unknown_entity_raises(entities):
     parser = InstancedEntityParser(entities)
@@ -63,11 +78,11 @@ def test_instanced_from_dict_unknown_entity_raises(entities):
 
 # --- SceneParser ---
 
-def test_scene_to_dict_serializes_background_as_name(assets, entities, scene):
+def test_scene_to_dict_serializes_references(assets, entities, scene1):
     parser = SceneParser(assets, InstancedEntityParser(entities))
-    result = parser.to_dict(scene)
-    assert result["background"] == "bg"  # objeto -> referência por nome
-    assert len(result["entities"]) == 1
+    result = parser.to_dict(scene1)
+    assert result["background"] == "bg"
+    assert result["entities"][0]["entity_name"] == "meu_buneco"
 
 def test_scene_from_dict_resolves_references(assets, entities, asset, entity):
     parser = SceneParser(assets, InstancedEntityParser(entities))
@@ -79,59 +94,66 @@ def test_scene_from_dict_resolves_references(assets, entities, asset, entity):
     assert scene.background is asset
     assert scene.entities[0].entity is entity
 
-def test_scene_roundtrip(assets, entities, scene):
+def test_scene_roundtrip(assets, entities, scene1):
     parser = SceneParser(assets, InstancedEntityParser(entities))
-    assert parser.from_dict(parser.to_dict(scene)) == scene
+    assert parser.from_dict(parser.to_dict(scene1)) == scene1
 
-# --- SceneManager.load ---
+# --- SceneManager.add ---
 
-def test_load_single(project_paths, assets, entities):
-    data = {
-        "unique_name": "level01", "background": "bg",
-        "entities": [{"id": "b1", "entity_name": "meu_buneco", "x": 25, "y": 30}],
-    }
-    (project_paths.scenes_dir / "level01.json").write_text(json.dumps(data), encoding="utf-8")
-    manager = SceneManager(JSONSerializer(), assets, entities)
-    manager.load(project_paths)
-    scene = manager.scenes.get("level01")
-    assert scene.background.unique_name == "bg"
-    assert scene.entities[0].entity.unique_name == "meu_buneco"
+def test_add_single(manager, scene1):
+    manager.add(scene1)
+    assert manager.scenes.get("level01") is scene1
 
-def test_load_empty_dir(project_paths, assets, entities):
-    manager = SceneManager(JSONSerializer(), assets, entities)
-    manager.load(project_paths)
-    assert manager.scenes.all() == []
+def test_add_duplicate_raises(manager, scene1):
+    manager.add(scene1)
+    with pytest.raises(KeyError):
+        manager.add(scene1)
 
-def test_save_single(project_paths, assets, entities, scene):
-    manager = SceneManager(JSONSerializer(), assets, entities)
-    manager.scenes.register(scene.unique_name, scene)
+# --- SceneManager.remove ---
+
+def test_remove(manager, scene1):
+    manager.add(scene1)
+    manager.remove("level01")
+    with pytest.raises(KeyError):
+        manager.scenes.get("level01")
+
+# --- SceneManager.save ---
+
+def test_save_creates_file(manager, scene1, project_paths):
+    manager.add(scene1)
     manager.save(project_paths)
     assert (project_paths.scenes_dir / "level01.json").exists()
 
-def test_save_creates_dir(tmp_path, assets, entities, scene):
-    paths = ProjectPaths(tmp_path)
-    manager = SceneManager(JSONSerializer(), assets, entities)
-    manager.scenes.register(scene.unique_name, scene)
-    manager.save(paths)
-    assert paths.scenes_dir.exists()
+def test_save_serializes_references_as_names(manager, scene1, project_paths):
+    manager.add(scene1)
+    manager.save(project_paths)
+    raw = json.loads((project_paths.scenes_dir / "level01.json").read_text())
+    assert raw["background"] == "bg"
+    assert raw["entities"][0]["entity_name"] == "meu_buneco"
 
-def test_save_and_load_roundtrip(project_paths, assets, entities, scene):
-    manager = SceneManager(JSONSerializer(), assets, entities)
-    manager.scenes.register(scene.unique_name, scene)
+# --- SceneManager.load ---
+
+def test_load_empty_dir(manager, project_paths):
+    project_paths.scenes_dir.mkdir(parents=True, exist_ok=True)
+    manager.load(project_paths)
+    assert manager.scenes.all() == []
+
+def test_load_maintains_external_reference(manager, scene1, project_paths):
+    external_ref = manager.scenes
+    manager.add(scene1)
+    manager.save(project_paths)
+    manager.load(project_paths)
+    assert external_ref is manager.scenes
+    assert external_ref.get("level01") is not None
+
+# --- save/load roundtrip ---
+
+def test_save_load_roundtrip(manager, scene1, scene2, project_paths, assets, entities):
+    manager.add(scene1)
+    manager.add(scene2)
     manager.save(project_paths)
 
     manager2 = SceneManager(JSONSerializer(), assets, entities)
     manager2.load(project_paths)
-    loaded = manager2.scenes.get(scene.unique_name)
-    assert loaded == scene
-
-def test_save_serializes_references_as_names(project_paths, assets, entities, scene):
-    """garante que background e entity_name são strings, não objetos"""
-    manager = SceneManager(JSONSerializer(), assets, entities)
-    manager.scenes.register(scene.unique_name, scene)
-    manager.save(project_paths)
-
-    import json
-    raw = json.loads((project_paths.scenes_dir / "level01.json").read_text())
-    assert raw["background"] == "bg"
-    assert raw["entities"][0]["entity_name"] == "meu_buneco"
+    assert manager2.scenes.get("level01") == scene1
+    assert manager2.scenes.get("level02") == scene2

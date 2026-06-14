@@ -1,7 +1,7 @@
 from pathlib import Path
 from core.model import Asset, Entity
 from core.registers import Registry
-from .managers import ProjectPaths, Manager
+from .managers import ProjectPartsManager, ProjectPaths, Manager
 from .serializers import DataSerializer, ObjParserStrategy, SerializeStrategy
 
 class EntityParser(ObjParserStrategy[Entity]):
@@ -30,7 +30,7 @@ class EntityParser(ObjParserStrategy[Entity]):
             hooks=data.get("hooks", {}),
         )
 
-class EntityManager(Manager):
+class EntityManager(ProjectPartsManager):
     def __init__(self, serializer_strategy: SerializeStrategy, assets: Registry[Asset]) -> None:
         super().__init__(DataSerializer(EntityParser(assets), serializer_strategy))
         self.entities = Registry[Entity]()
@@ -48,3 +48,12 @@ class EntityManager(Manager):
         for entity in self.entities.all():
             filepath = project_paths.entities_dir / f"{entity.unique_name}.json"
             self.serializer.save_to_file(entity, filepath)
+
+    def add(self, obj: Entity):
+        if self.entities.exists(obj.unique_name):
+            raise KeyError("Entity already existent")
+
+        self.entities.register(obj.unique_name, obj)
+    
+    def remove(self, unique_name: str):
+        self.entities.unregister(unique_name)
