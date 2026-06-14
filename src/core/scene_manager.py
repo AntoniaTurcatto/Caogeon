@@ -3,7 +3,7 @@ from core.registers import Registry
 from core.serializers import DataSerializer, ObjParserStrategy, SerializeStrategy
 from .managers import Manager, ProjectPaths
 
-class InstancedEntityParser(ObjParserStrategy):
+class InstancedEntityParser(ObjParserStrategy[InstancedEntity]):
     def __init__(self, entities: Registry[Entity]) -> None:
         super().__init__()
         self.entities = entities 
@@ -24,7 +24,7 @@ class InstancedEntityParser(ObjParserStrategy):
             y=data["y"],
         )
 
-class SceneParser(ObjParserStrategy):
+class SceneParser(ObjParserStrategy[Scene]):
     def __init__(self, assets: Registry[Asset], instanced_entity_parser: InstancedEntityParser) -> None:
         super().__init__()
         self.assets = assets 
@@ -49,9 +49,22 @@ class SceneParser(ObjParserStrategy):
 
 class SceneManager(Manager):
     def __init__(self, 
-                 project_paths: ProjectPaths, 
-                 serializer_strategy: SerializeStrategy, 
+                serializer_strategy: SerializeStrategy, 
                  assets: Registry[Asset], 
                  entities: Registry[Entity]) -> None:
-        super().__init__(project_paths, DataSerializer(SceneParser(assets, InstancedEntityParser(entities)), serializer_strategy))
+        super().__init__(DataSerializer(SceneParser(assets, InstancedEntityParser(entities)), serializer_strategy))
         self.scenes = Registry[Scene]()
+
+    def load(self, project_paths: ProjectPaths):
+        aux_scenes = Registry[Scene]()
+        for filepath in project_paths.scenes_dir.glob("*.json"):
+            scene = self.serializer.load_from_file(filepath)
+            if scene is not None:
+                aux_scenes.register(scene.unique_name, scene)
+        self.scenes.replace_all(aux_scenes)
+    
+    def save(self, project_paths: ProjectPaths) -> None:
+        project_paths.scenes_dir.mkdir(parents=True, exist_ok=True)
+        for scene in self.scenes.all():
+            filepath = project_paths.scenes_dir / f"{scene.unique_name}.json"
+            self.serializer.save_to_file(scene, filepath)

@@ -42,7 +42,7 @@ class WindowSpecs:
 
 
 @dataclass
-class ProjectSpecs:
+class Project:
     name: str
     engine_version: str
     window_specs: WindowSpecs

@@ -4,12 +4,7 @@ from core.registers import Registry
 from .managers import ProjectPaths, Manager
 from .serializers import DataSerializer, ObjParserStrategy, SerializeStrategy
 
-class EntityManager(Manager):
-    def __init__(self, project_paths: ProjectPaths, serializer_strategy: SerializeStrategy, assets: Registry[Asset]) -> None:
-        super().__init__(project_paths, DataSerializer(EntityParser(assets), serializer_strategy))
-        self.entities = Registry[Entity]()
-
-class EntityParser(ObjParserStrategy):
+class EntityParser(ObjParserStrategy[Entity]):
     def __init__(self, assets: Registry[Asset]) -> None:
         self.assets = assets
 
@@ -34,3 +29,22 @@ class EntityParser(ObjParserStrategy):
             variables=data.get("variables", {}),
             hooks=data.get("hooks", {}),
         )
+
+class EntityManager(Manager):
+    def __init__(self, serializer_strategy: SerializeStrategy, assets: Registry[Asset]) -> None:
+        super().__init__(DataSerializer(EntityParser(assets), serializer_strategy))
+        self.entities = Registry[Entity]()
+    
+    def load(self, project_paths: ProjectPaths):
+        aux_entities = Registry[Entity]()
+        for filepath in project_paths.entities_dir.glob("*.json"):
+            entity = self.serializer.load_from_file(filepath)
+            if entity is not None:
+                aux_entities.register(entity.unique_name, entity)
+        self.entities.replace_all(aux_entities)
+
+    def save(self, project_paths: ProjectPaths):
+        project_paths.entities_dir.mkdir(parents=True, exist_ok=True)
+        for entity in self.entities.all():
+            filepath = project_paths.entities_dir / f"{entity.unique_name}.json"
+            self.serializer.save_to_file(entity, filepath)

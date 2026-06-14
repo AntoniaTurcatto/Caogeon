@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
 import shutil
 from .serializers import DataSerializer
@@ -12,9 +13,8 @@ class ProjectPaths:
         self.script_dir = Path(self.root / "model" / "scripts")
         self.project_file = Path(self.root / "model" / "project.json")
 
-class Manager:
-    def __init__(self, project_paths: ProjectPaths, serializer: DataSerializer) -> None:
-        self.project_paths = project_paths
+class Manager(ABC):
+    def __init__(self, serializer: DataSerializer) -> None:
         self.serializer = serializer
 
     def clear_folders(self, folders: list[Path]):
@@ -24,3 +24,12 @@ class Manager:
 
     def create_folder(self, folder:Path):
         folder.mkdir(parents=True, exist_ok=True)
+
+    @abstractmethod
+    def load(self, project_paths: ProjectPaths):
+        pass
+
+    @abstractmethod
+    def save(self, project_paths: ProjectPaths):
+        pass
+        

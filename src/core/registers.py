@@ -16,3 +16,10 @@ class Registry(Generic[T]):
 
     def all(self) -> list[T]:
         return list(self._data.values())
+
+    def clear(self):
+        self_data = {}
+
+    def replace_all(self, other: "Registry[T]"):
+        self._data.clear()
+        self._data.update(other._data)
