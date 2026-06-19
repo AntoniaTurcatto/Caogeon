@@ -69,9 +69,3 @@ class Menu(QMenuBar):
         project_menu.addAction("save project").triggered.connect(main_window.save_project)
         project_menu.addAction("save files").triggered.connect(main_window.save_files)
         project_menu.addAction("import asset").triggered.connect(main_window.import_asset)
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = MainWindow(ProjectManager())
-    window.showMaximized()
-    sys.exit(app.exec())
