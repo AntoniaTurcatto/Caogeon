@@ -24,12 +24,12 @@ class WindowSpecsParser(ObjParserStrategy[WindowSpecs]):
             target_fps=data["target_fps"]
         )
 
-class ProjectParser(ObjParserStrategy[Project]): 
+class ProjectParser(ObjParserStrategy[Project]):
     def __init__(self, window_parser: WindowSpecsParser, scenes: Registry[Scene]) -> None:
         super().__init__()
         self.window_parser = window_parser
         self.scenes = scenes
-        
+
 
     def to_dict(self, project: Project) -> dict:
         data = {
@@ -58,10 +58,10 @@ class ProjectManager(Manager):
         super().__init__(DataSerializer(ProjectParser(WindowSpecsParser(), self.scene_manager.scenes), self.serializer_strat))
 
     def load(self, project_paths: ProjectPaths):
-        self.asset_manager.load(project_paths)    
-        self.entity_manager.load(project_paths)   
-        self.scene_manager.load(project_paths)    
-        self.project = self.serializer.load_from_file(project_paths.project_file) 
+        self.asset_manager.load(project_paths)
+        self.entity_manager.load(project_paths)
+        self.scene_manager.load(project_paths)
+        self.project = self.serializer.load_from_file(project_paths.project_file)
 
     def save(self, project_paths: ProjectPaths) -> None:
         self.asset_manager.save(project_paths)
