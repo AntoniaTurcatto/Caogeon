@@ -12,15 +12,15 @@ from PySide6.QtWidgets import (QApplication,
 
 from core.managers import ProjectPaths
 from core.project_manager import ProjectManager
-from editor.dialogs.basic_dialogs import BasicDialog
+from editor.dialogs.basic_dialogs import DialogManager
 
 class MainWindow(QMainWindow):
-    def __init__(self, project_mgr: ProjectManager, dialogs: dict[str, BasicDialog], parent = None):
+    def __init__(self, project_mgr: ProjectManager, dialogs_mgr: DialogManager, parent = None):
         super(MainWindow, self).__init__(parent)
         self.setWindowTitle("Caogeon editor")
         self.init_ui()
-        self.dialog = dialogs["path"]
-        self.error_dialog = dialogs["error"]
+        self.dialogs_mgr = dialogs_mgr
+        #self.dialogs_mgr.set_parent(self)
         self.proj_mgr = project_mgr
         self.setMinimumSize(800, 600)
 
@@ -31,16 +31,16 @@ class MainWindow(QMainWindow):
     def new_project(self):
         print("new")
 
-    @Slot(str)
-    def on_confirm_open_project(self, path: str):
+    @Slot()
+    def on_confirm_open_project(self):
       try:
-        self.proj_mgr.load(ProjectPaths(Path(path)))
+        self.proj_mgr.load(ProjectPaths(Path(self.dialogs_mgr.path_dialog.get_input())))
       except Exception as e:
-        print("Failed to open project: " + str(e))
+        self.dialogs_mgr.error_dialog.show("Failed to open project: " + str(e))
 
     @Slot()
     def open_project(self):
-        self.dialog.show("Path", self.on_confirm_open_project)
+        self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_open_project)
 
     @Slot()
     def save_files(self):
