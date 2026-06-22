@@ -20,7 +20,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Caogeon editor")
         self.init_ui()
         self.dialogs_mgr = dialogs_mgr
-        #self.dialogs_mgr.set_parent(self)
         self.proj_mgr = project_mgr
         self.setMinimumSize(800, 600)
 
