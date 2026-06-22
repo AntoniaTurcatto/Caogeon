@@ -25,12 +25,13 @@ def setup_project(paths: ProjectPaths):
     ))
     (paths.entities_dir / "meu_buneco.json").write_text(json.dumps({
         "unique_name": "meu_buneco", "sprite_name": "sprite",
-        "width": 5, "height": 10, "script_path": "scripts/buneco.py",
+        "width": 5, "height": 10, "script_path": str(paths.script_dir / "buneco.py"),
         "variables": {"vida": 100}, "hooks": {"on_spawn": "inicializar"},
     }))
     (paths.scenes_dir / "level01.json").write_text(json.dumps({
         "unique_name": "level01", "background": "sprite",
         "entities": [{"id": "b1", "entity_name": "meu_buneco", "x": 25, "y": 30}],
+        "script_path": str(paths.scenes_script_dir / "level01.py")
     }))
     paths.project_file.write_text(json.dumps({
         "name": "Caogeon Demo", "engine_version": "1.0.0",
@@ -47,9 +48,9 @@ def test_window_roundtrip():
 
 # --- ProjectParser ---
 
-def test_project_parser_resolves_initial_scene():
+def test_project_parser_resolves_initial_scene(project_paths):
     scenes = Registry()
-    scene = Scene(unique_name="level01", background=Asset("bg", Path("bg.png")), entities=[])
+    scene = Scene(unique_name="level01", background=Asset("bg", Path("bg.png")), entities=[], script_path=project_paths.scenes_script_dir / "level01.py")
     scenes.register("level01", scene)
     parser = ProjectParser(WindowSpecsParser(), scenes)
     data = {

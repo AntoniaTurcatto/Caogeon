@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from core.model import Asset, Entity, InstancedEntity, Scene
 from core.registers import Registry
 from core.serializers import DataSerializer, ObjParserStrategy, SerializeStrategy
@@ -6,12 +8,12 @@ from .managers import Manager, ProjectPartsManager, ProjectPaths
 class InstancedEntityParser(ObjParserStrategy[InstancedEntity]):
     def __init__(self, entities: Registry[Entity]) -> None:
         super().__init__()
-        self.entities = entities 
+        self.entities = entities
 
     def to_dict(self, instanced: InstancedEntity) -> dict:
         return {
             "id": instanced.id,
-            "entity_name": instanced.entity.unique_name,  
+            "entity_name": instanced.entity.unique_name,
             "x": instanced.x,
             "y": instanced.y,
         }
@@ -27,14 +29,15 @@ class InstancedEntityParser(ObjParserStrategy[InstancedEntity]):
 class SceneParser(ObjParserStrategy[Scene]):
     def __init__(self, assets: Registry[Asset], instanced_entity_parser: InstancedEntityParser) -> None:
         super().__init__()
-        self.assets = assets 
+        self.assets = assets
         self.instanced_entity_parser = instanced_entity_parser
-        
+
     def to_dict(self, scene: Scene) -> dict:
         data = {
             "unique_name": scene.unique_name,
             "background": scene.background.unique_name,
-            "entities": [self.instanced_entity_parser.to_dict(e) for e in scene.entities]
+            "entities": [self.instanced_entity_parser.to_dict(e) for e in scene.entities],
+            "script_path": str(scene.script_path),
         }
         return data
 
@@ -42,15 +45,14 @@ class SceneParser(ObjParserStrategy[Scene]):
         return Scene(
             unique_name = data["unique_name"],
             background  = self.assets.get(data["background"]),
-            entities    = [self.instanced_entity_parser.from_dict(e) for e in data["entities"]]
+            entities    = [self.instanced_entity_parser.from_dict(e) for e in data["entities"]],
+            script_path = Path(data["script_path"]),
         )
 
-
-
 class SceneManager(ProjectPartsManager):
-    def __init__(self, 
-                serializer_strategy: SerializeStrategy, 
-                 assets: Registry[Asset], 
+    def __init__(self,
+                serializer_strategy: SerializeStrategy,
+                 assets: Registry[Asset],
                  entities: Registry[Entity]) -> None:
         super().__init__(DataSerializer(SceneParser(assets, InstancedEntityParser(entities)), serializer_strategy))
         self.scenes = Registry[Scene]()
@@ -62,7 +64,7 @@ class SceneManager(ProjectPartsManager):
             if scene is not None:
                 aux_scenes.register(scene.unique_name, scene)
         self.scenes.replace_all(aux_scenes)
-    
+
     def save(self, project_paths: ProjectPaths) -> None:
         project_paths.scenes_dir.mkdir(parents=True, exist_ok=True)
         for scene in self.scenes.all():
@@ -74,6 +76,6 @@ class SceneManager(ProjectPartsManager):
             raise KeyError("Scene already existent")
 
         self.scenes.register(obj.unique_name, obj)
-    
+
     def remove(self, unique_name: str):
         self.scenes.unregister(unique_name)
