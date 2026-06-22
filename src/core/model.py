@@ -1,7 +1,12 @@
 from dataclasses import dataclass
-from doctest import script_from_examples
+from enum import Enum
 from pathlib import Path
 from typing import Any
+
+class ProjectPart(Enum):
+    SCENE = "scene"
+    ENTITY = "entity"
+    ASSET = "asset"
 
 @dataclass
 class Asset:

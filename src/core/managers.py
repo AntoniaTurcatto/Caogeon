@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 import shutil
 from typing import Any
+
+from core.model import ProjectPart
 from .serializers import DataSerializer
 
 class ProjectPaths:
@@ -35,6 +37,10 @@ class Manager(ABC):
     def save(self, project_paths: ProjectPaths):
         pass
 
+    @abstractmethod
+    def update_property(self, project_part: ProjectPart, unique_name: str, property_name: str, new_value: str):
+        pass
+
 class ProjectPartsManager(Manager):
     @abstractmethod
     def add(self, obj: Any):
@@ -42,4 +48,12 @@ class ProjectPartsManager(Manager):
 
     @abstractmethod
     def remove(self, unique_name: str):
+        pass
+
+    @abstractmethod
+    def get_as_dict(self, unique_name: str) -> dict:
+        pass
+
+    @abstractmethod
+    def update_property(self, unique_name: str, property_name: str, new_value: str):
         pass

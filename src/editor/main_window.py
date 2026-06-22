@@ -1,30 +1,62 @@
 from pathlib import Path
-import sys
-from tkinter.constants import S
 from PySide6.QtCore import (Signal, Slot, Qt)
 from pathlib import Path
 
 from PySide6.QtWidgets import (QApplication,
                                QLabel,
                                QLineEdit, QMainWindow, QMenu, QMenuBar,
-                               QPushButton,
-                               QVBoxLayout, QHBoxLayout)
+                               QPushButton, QSplitter,
+                               QVBoxLayout, QHBoxLayout, QWidget)
 
 from core.managers import ProjectPaths
+from core.model import ProjectPart
 from core.project_manager import ProjectManager
 from editor.dialogs.basic_dialogs import DialogManager
+from editor.panels.panels import BrowserPanel
+from editor.panels.inspectors import GenericInspectorPanel
 
 class MainWindow(QMainWindow):
     def __init__(self, project_mgr: ProjectManager, dialogs_mgr: DialogManager, parent = None):
         super(MainWindow, self).__init__(parent)
         self.setWindowTitle("Caogeon editor")
-        self.init_ui()
         self.dialogs_mgr = dialogs_mgr
         self.proj_mgr = project_mgr
         self.setMinimumSize(800, 600)
+        self.init_ui()
 
     def init_ui(self):
         self.setMenuBar(Menu(self))
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+
+        splitter = QSplitter()
+        main_layout.addWidget(splitter)
+
+        self.asset_panel = BrowserPanel(title="Assets")
+        self.asset_panel.load_assets([asset.unique_name for asset in self.proj_mgr.asset_manager.assets.as_list()])
+        splitter.addWidget(self.asset_panel)
+
+        self.canvas = QLabel("Scene Canvas Aqui")
+        self.canvas.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.canvas.setStyleSheet("background-color: #2b2b2b; color: white;")
+        splitter.addWidget(self.canvas)
+
+        self.inspector_panel = GenericInspectorPanel()
+        splitter.addWidget(self.inspector_panel)
+
+        self.asset_panel.selected.connect(self.on_asset_selected)
+        self.inspector_panel.property_changed.connect(self.on_property_changed)
+
+    @Slot(str)
+    def on_asset_selected(self, asset_name: str):
+        asset_dict = self.proj_mgr.asset_manager.get_as_dict(asset_name)
+        if asset_dict:
+            self.inspector_panel.inspect_object(ProjectPart.ASSET, asset_name, asset_dict)
+
+    @Slot(ProjectPart, str, str, str)
+    def on_property_changed(self, proj_part: ProjectPart, unique_name: str, property_name: str, new_value: str):
+        self.proj_mgr.update_property(proj_part, unique_name, property_name, new_value)
 
     @Slot()
     def new_project(self):

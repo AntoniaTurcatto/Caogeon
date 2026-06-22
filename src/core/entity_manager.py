@@ -1,40 +1,14 @@
-from pathlib import Path
 from core.model import Asset, Entity
+from core.model_parsers import EntityParser
 from core.registers import Registry
-from .managers import ProjectPartsManager, ProjectPaths, Manager
-from .serializers import DataSerializer, ObjParserStrategy, SerializeStrategy
-
-class EntityParser(ObjParserStrategy[Entity]):
-    def __init__(self, assets: Registry[Asset]) -> None:
-        self.assets = assets
-
-    def to_dict(self, entity: Entity) -> dict:
-        return {
-            "unique_name": entity.unique_name,
-            "sprite_name": entity.sprite.unique_name,
-            "width": entity.width,
-            "height": entity.height,
-            "script_path": str(entity.script_path),
-            "variables": entity.variables,
-            "hooks": entity.hooks,
-        }
-
-    def from_dict(self, data: dict) -> Entity:
-        return Entity(
-            unique_name=data["unique_name"],
-            sprite=self.assets.get(data["sprite_name"]),  # resolve referência
-            width=data["width"],
-            height=data["height"],
-            script_path=Path(data["script_path"]),
-            variables=data.get("variables", {}),
-            hooks=data.get("hooks", {}),
-        )
+from .managers import ProjectPartsManager, ProjectPaths
+from .serializers import DataSerializer, SerializeStrategy
 
 class EntityManager(ProjectPartsManager):
     def __init__(self, serializer_strategy: SerializeStrategy, assets: Registry[Asset]) -> None:
         super().__init__(DataSerializer(EntityParser(assets), serializer_strategy))
         self.entities = Registry[Entity]()
-    
+
     def load(self, project_paths: ProjectPaths):
         aux_entities = Registry[Entity]()
         for filepath in project_paths.entities_dir.glob("*.json"):
@@ -54,6 +28,17 @@ class EntityManager(ProjectPartsManager):
             raise KeyError("Entity already existent")
 
         self.entities.register(obj.unique_name, obj)
-    
+
     def remove(self, unique_name: str):
         self.entities.unregister(unique_name)
+
+    def get_as_dict(self, unique_name: str) -> dict:
+        entity = self.entities.get(unique_name)
+        if entity is None:
+            return {}
+        return self.serializer.parser.to_dict(entity)
+
+    def update_property(self, unique_name: str, property_name: str, new_value: str):
+        entity = self.entities.get(unique_name)
+        if entity is not None and hasattr(entity, property_name):
+            setattr(entity, property_name, new_value)

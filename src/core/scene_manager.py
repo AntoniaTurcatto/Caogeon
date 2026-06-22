@@ -1,53 +1,8 @@
-from pathlib import Path
-
-from core.model import Asset, Entity, InstancedEntity, Scene
+from core.model import Asset, Entity, Scene
+from core.model_parsers import InstancedEntityParser, SceneParser
 from core.registers import Registry
-from core.serializers import DataSerializer, ObjParserStrategy, SerializeStrategy
-from .managers import Manager, ProjectPartsManager, ProjectPaths
-
-class InstancedEntityParser(ObjParserStrategy[InstancedEntity]):
-    def __init__(self, entities: Registry[Entity]) -> None:
-        super().__init__()
-        self.entities = entities
-
-    def to_dict(self, instanced: InstancedEntity) -> dict:
-        return {
-            "id": instanced.id,
-            "entity_name": instanced.entity.unique_name,
-            "x": instanced.x,
-            "y": instanced.y,
-        }
-
-    def from_dict(self, data: dict) -> InstancedEntity:
-        return InstancedEntity(
-            id=data["id"],
-            entity=self.entities.get(data["entity_name"]),
-            x=data["x"],
-            y=data["y"],
-        )
-
-class SceneParser(ObjParserStrategy[Scene]):
-    def __init__(self, assets: Registry[Asset], instanced_entity_parser: InstancedEntityParser) -> None:
-        super().__init__()
-        self.assets = assets
-        self.instanced_entity_parser = instanced_entity_parser
-
-    def to_dict(self, scene: Scene) -> dict:
-        data = {
-            "unique_name": scene.unique_name,
-            "background": scene.background.unique_name,
-            "entities": [self.instanced_entity_parser.to_dict(e) for e in scene.entities],
-            "script_path": str(scene.script_path),
-        }
-        return data
-
-    def from_dict(self, data: dict) -> Scene:
-        return Scene(
-            unique_name = data["unique_name"],
-            background  = self.assets.get(data["background"]),
-            entities    = [self.instanced_entity_parser.from_dict(e) for e in data["entities"]],
-            script_path = Path(data["script_path"]),
-        )
+from core.serializers import DataSerializer, SerializeStrategy
+from .managers import ProjectPartsManager, ProjectPaths
 
 class SceneManager(ProjectPartsManager):
     def __init__(self,
@@ -79,3 +34,14 @@ class SceneManager(ProjectPartsManager):
 
     def remove(self, unique_name: str):
         self.scenes.unregister(unique_name)
+
+    def get_as_dict(self, unique_name: str) -> dict:
+        scene = self.scenes.get(unique_name)
+        if scene is None:
+            return {}
+        return self.serializer.parser.to_dict(scene)
+
+    def update_property(self, unique_name: str, property_name: str, new_value: str):
+        scene = self.scenes.get(unique_name)
+        if scene is not None and hasattr(scene, property_name):
+            setattr(scene, property_name, new_value)
