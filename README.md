@@ -100,6 +100,7 @@ Example: `ctx.state["health"] = int(arg)`
 ```
 
 ### project_files/scenes/
+scenes scripts are inside project_file/scenes/scripts
 ```json
 {
   "unique_name": "level01",
@@ -117,7 +118,8 @@ Example: `ctx.state["health"] = int(arg)`
       "x": 205,
       "y": 210
     }
-  ]
+  ],
+  "script_path": "level01.py"
 }
 ```
 
