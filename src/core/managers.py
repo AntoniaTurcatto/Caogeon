@@ -11,6 +11,7 @@ class ProjectPaths:
         self.assets_files_dir = Path(self.root / "model" / "assets_files")
         self.entities_dir = Path(self.root / "model" / "entities")
         self.scenes_dir = Path(self.root / "model" / "scenes")
+        self.scenes_script_dir = Path(self.root / "model" / "scenes" / "scripts")
         self.script_dir = Path(self.root / "model" / "scripts")
         self.project_file = Path(self.root / "model" / "project.json")
 
@@ -38,8 +39,7 @@ class ProjectPartsManager(Manager):
     @abstractmethod
     def add(self, obj: Any):
         pass
-    
-    @abstractmethod  
+
+    @abstractmethod
     def remove(self, unique_name: str):
         pass
-        

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from doctest import script_from_examples
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +9,7 @@ class Asset:
     unique_name: str
     path: Path
 
-@dataclass 
+@dataclass
 class Entity:
     """A class to represent a type of a entity, such a certain enemy, a rock, etc"""
     unique_name: str
@@ -32,6 +33,7 @@ class Scene:
     unique_name: str
     background: Asset
     entities: list[InstancedEntity]
+    script_path: Path
 
 @dataclass
 class WindowSpecs:

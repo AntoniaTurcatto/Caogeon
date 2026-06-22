@@ -1,6 +1,5 @@
 import json
 import pytest
-from pathlib import Path
 from core.scene_manager import SceneManager, SceneParser, InstancedEntityParser
 from core.model import Asset, Entity, InstancedEntity, Scene
 from core.registers import Registry
@@ -26,10 +25,10 @@ def assets(asset):
     return r
 
 @pytest.fixture
-def entity(asset):
+def entity(asset, project_paths):
     return Entity(
         unique_name="meu_buneco", sprite=asset,
-        width=5, height=10, script_path=Path("scripts/buneco.py"),
+        width=5, height=10, script_path=project_paths.script_dir / "buneco.py",
         variables={}, hooks={},
     )
 
@@ -52,12 +51,22 @@ def instanced2(entity):
     return InstancedEntity(id="buneco_2", entity=entity, x=100, y=200)
 
 @pytest.fixture
-def scene1(asset, instanced1):
-    return Scene(unique_name="level01", background=asset, entities=[instanced1])
+def scene1(asset, instanced1, project_paths):
+    return Scene(
+        unique_name="level01",
+        background=asset,
+        entities=[instanced1],
+        script_path=project_paths.scenes_script_dir / "level01.py"
+    )
 
 @pytest.fixture
-def scene2(asset, instanced2):
-    return Scene(unique_name="level02", background=asset, entities=[instanced2])
+def scene2(asset, instanced2, project_paths):
+    return Scene(
+        unique_name="level02",
+        background=asset,
+        entities=[instanced2],
+        script_path=project_paths.scenes_script_dir / "level02.py"
+    )
 
 # --- InstancedEntityParser ---
 
@@ -78,21 +87,31 @@ def test_instanced_from_dict_unknown_entity_raises(entities):
 
 # --- SceneParser ---
 
-def test_scene_to_dict_serializes_references(assets, entities, scene1):
+def test_scene_to_dict_serializes_references(assets, entities, scene1, project_paths):
     parser = SceneParser(assets, InstancedEntityParser(entities))
     result = parser.to_dict(scene1)
+
     assert result["background"] == "bg"
     assert result["entities"][0]["entity_name"] == "meu_buneco"
+    # Valida a serialização do script_path para string
+    assert result["script_path"] == str(project_paths.scenes_script_dir / "level01.py")
 
-def test_scene_from_dict_resolves_references(assets, entities, asset, entity):
+def test_scene_from_dict_resolves_references(assets, entities, asset, entity, project_paths):
     parser = SceneParser(assets, InstancedEntityParser(entities))
+
+    expected_script_path = project_paths.scenes_script_dir / "level01.py"
     data = {
-        "unique_name": "level01", "background": "bg",
+        "unique_name": "level01",
+        "background": "bg",
         "entities": [{"id": "b1", "entity_name": "meu_buneco", "x": 25, "y": 30}],
+        "script_path": str(expected_script_path)
     }
     scene = parser.from_dict(data)
+
     assert scene.background is asset
     assert scene.entities[0].entity is entity
+    # Valida a desserialização recuperando o path correto
+    assert scene.script_path == expected_script_path
 
 def test_scene_roundtrip(assets, entities, scene1):
     parser = SceneParser(assets, InstancedEntityParser(entities))
@@ -128,8 +147,11 @@ def test_save_serializes_references_as_names(manager, scene1, project_paths):
     manager.add(scene1)
     manager.save(project_paths)
     raw = json.loads((project_paths.scenes_dir / "level01.json").read_text())
+
     assert raw["background"] == "bg"
     assert raw["entities"][0]["entity_name"] == "meu_buneco"
+    # Garante que o arquivo salvo em disco contém o caminho do script
+    assert raw["script_path"] == str(project_paths.scenes_script_dir / "level01.py")
 
 # --- SceneManager.load ---
 
