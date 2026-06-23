@@ -1,12 +1,11 @@
 from pathlib import Path
-from PySide6.QtCore import (Signal, Slot, Qt)
+from PySide6.QtCore import (Slot, Qt)
 from pathlib import Path
 
-from PySide6.QtWidgets import (QApplication,
-                               QLabel,
-                               QLineEdit, QMainWindow, QMenu, QMenuBar,
-                               QPushButton, QSplitter,
-                               QVBoxLayout, QHBoxLayout, QWidget)
+from PySide6.QtWidgets import (QLabel,
+                               QMainWindow, QMenu, QMenuBar,
+                               QSplitter,
+                               QVBoxLayout, QWidget)
 
 from core.managers import ProjectPaths
 from core.project_manager import ProjectManager
@@ -26,7 +25,7 @@ class MainWindow(QMainWindow):
         self.editor_mgr = EditorManager(self.proj_mgr, self.inspector_panel, self.asset_panel, self.scene_panel, self.entity_panel)
 
     def init_ui(self):
-        self.setMenuBar(Menu(self))
+        self.setMenuBar(Menu(self.proj_mgr, self.dialogs_mgr))
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
@@ -55,45 +54,69 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.scene_panel)
         splitter.addWidget(self.entity_panel)
 
-    @Slot()
-    def new_project(self):
-        print("new")
+class Menu(QMenuBar):
+    def __init__(self, proj_mgr: ProjectManager, dialogs_mgr: DialogManager) -> None:
+        super().__init__()
+        self.proj_mgr = proj_mgr
+        self.dialogs_mgr = dialogs_mgr
+        self.add_project_menu()
+
+    def add_project_menu(self):
+        project_menu = self.addMenu("file")
+        project_menu.addAction("new project").triggered.connect(self.new_project)
+        project_menu.addAction("load project").triggered.connect(self.load_project)
+        project_menu.addAction("save project").triggered.connect(self.save_project)
+        project_menu.addAction("save project at").triggered.connect(self.save_project_at)
+        project_menu.addAction("import asset").triggered.connect(self.import_asset)
 
     @Slot()
-    def on_confirm_open_project(self):
+    def new_project(self):
+      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_new_project)
+
+    @Slot()
+    def on_confirm_new_project(self):
       try:
-        self.proj_mgr.load(ProjectPaths(Path(self.dialogs_mgr.path_dialog.get_input())))
+        self.proj_mgr.new(ProjectPaths(self.dialogs_mgr.path_dialog.get_input()))
+      except Exception as e:
+        self.dialogs_mgr.error_dialog.show("Failed to create project: " + str(e))
+
+    @Slot()
+    def load_project(self):
+      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_load_project)
+
+    @Slot()
+    def on_confirm_load_project(self):
+      try:
+        self.proj_mgr.load(ProjectPaths(self.dialogs_mgr.path_dialog.get_input()))
       except Exception as e:
         self.dialogs_mgr.error_dialog.show("Failed to open project: " + str(e))
 
     @Slot()
-    def open_project(self):
-        self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_open_project)
+    def save_project_at(self):
+      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_save_project_at)
 
     @Slot()
-    def save_files(self):
-        pass
+    def on_confirm_save_project_at(self):
+      save_as = self.dialogs_mgr.path_dialog.get_input()
+      try:
+        self.proj_mgr.save(ProjectPaths(save_as))
+      except Exception as e:
+        self.dialogs_mgr.error_dialog.show(f"Failed to save project as {save_as}: {str(e)}")
 
     @Slot()
     def save_project(self):
-        pass
+      try:
+        self.proj_mgr.save()
+      except Exception as e:
+        self.dialogs_mgr.error_dialog.show("Failed to save project: " + str(e))
 
     @Slot()
     def import_asset(self):
-        pass
+      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_import_asset)
 
-class Menu(QMenuBar):
-    def __init__(self, main_window: MainWindow) -> None:
-        super().__init__()
-        self.add_project_menu(main_window)
-
-    def configure_project_menu(self, main_menu: QMenu):
-        pass
-
-    def add_project_menu(self, main_window: MainWindow):
-        project_menu = self.addMenu("file")
-        project_menu.addAction("new project").triggered.connect(main_window.new_project)
-        project_menu.addAction("open project").triggered.connect(main_window.open_project)
-        project_menu.addAction("save project").triggered.connect(main_window.save_project)
-        project_menu.addAction("save files").triggered.connect(main_window.save_files)
-        project_menu.addAction("import asset").triggered.connect(main_window.import_asset)
+    @Slot()
+    def on_confirm_import_asset(self):
+      try:
+        self.proj_mgr.asset_manager.import_asset(self.dialogs_mgr.path_dialog.get_input())
+      except Exception as e:
+        self.dialogs_mgr.error_dialog.show("Failed to import asset: " + str(e))

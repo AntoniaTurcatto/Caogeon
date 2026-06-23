@@ -36,7 +36,7 @@ class Manager(ABC):
         pass
 
     @abstractmethod
-    def save(self, project_paths: ProjectPaths):
+    def save(self, project_paths: ProjectPaths | None = None):
         pass
 
 class ProjectPartsManager(Manager):

@@ -1,4 +1,4 @@
-from enum import Enum
+from typing import Callable
 
 from PySide6.QtCore import Slot
 
@@ -23,16 +23,35 @@ class EditorManager:
     self.asset_panel = asset_panel
     self.scene_panel = scene_panel
     self.entity_panel = entity_panel
+    self.map_inspect_strategy: dict[ProjectPart, Callable[[str, str, str], None]] = {}
     self.bind_events()
+    self.bind_inspect_strategy()
 
   def bind_events(self):
     self.asset_panel.selected.connect(self.asset_selected)
     self.scene_panel.selected.connect(self.scene_selected)
     self.entity_panel.selected.connect(self.entity_selected)
     self.inspector.property_changed.connect(self.update_property)
-    self.proj_manager.asset_manager.assets.on_change.append(lambda _: self.asset_panel.load_assets([a.unique_name for a in self.proj_manager.asset_manager.assets.as_list()]))
-    self.proj_manager.entity_manager.entities.on_change.append(lambda _: self.entity_panel.load_assets([e.unique_name for e in self.proj_manager.entity_manager.entities.as_list()]))
-    self.proj_manager.scene_manager.scenes.on_change.append(lambda _: self.scene_panel.load_assets([s.unique_name for s in self.proj_manager.scene_manager.scenes.as_list()]))
+    self.proj_manager.asset_manager.assets.on_change.append(
+      lambda: self.asset_panel.load_assets(
+        [a.unique_name for a in self.proj_manager.asset_manager.assets.as_list()]
+      )
+    )
+    self.proj_manager.entity_manager.entities.on_change.append(
+      lambda: self.entity_panel.load_assets(
+        [e.unique_name for e in self.proj_manager.entity_manager.entities.as_list()]
+      )
+    )
+    self.proj_manager.scene_manager.scenes.on_change.append(
+      lambda: self.scene_panel.load_assets(
+        [s.unique_name for s in self.proj_manager.scene_manager.scenes.as_list()]
+      )
+    )
+
+  def bind_inspect_strategy(self):
+    self.map_inspect_strategy[ProjectPart.ASSETS] = self.proj_manager.asset_manager.update_property
+    self.map_inspect_strategy[ProjectPart.SCENES] = self.proj_manager.scene_manager.update_property
+    self.map_inspect_strategy[ProjectPart.ENTITIES] = self.proj_manager.entity_manager.update_property
 
   @Slot(str)
   def asset_selected(self, asset_id):
@@ -48,4 +67,4 @@ class EditorManager:
 
   @Slot(ProjectPart, str, str, str)
   def update_property(self, type: ProjectPart, name: str, property_name: str, new_value: str):
-    pass
+    self.map_inspect_strategy[type](name, property_name, new_value)

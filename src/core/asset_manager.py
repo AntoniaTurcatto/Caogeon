@@ -2,7 +2,7 @@ from pathlib import Path
 
 from core.model_parsers import AssetParser
 from .registers import Registry
-from .serializers import  DataSerializer, SerializeStrategy
+from .serializers import DataSerializer, SerializeStrategy
 from .managers import ProjectPartsManager, ProjectPaths
 from .model import Asset
 
@@ -47,3 +47,10 @@ class AssetManager(ProjectPartsManager):
 
     def _folders(self, project_paths: ProjectPaths) -> list[Path]:
         return [project_paths.assets_dir, project_paths.assets_files_dir]
+
+    def import_asset(self, filepath: Path):
+        try:
+            asset = Asset(unique_name=filepath.stem, path=filepath)
+            self.add(asset)
+        except Exception as e:
+            raise e

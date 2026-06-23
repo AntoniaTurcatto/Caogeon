@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import Qt, Signal, SignalInstance, Slot
@@ -121,6 +122,9 @@ class PathDialog(InputDialog):
     super().__init__(400, 100, parent=parent, validator=PathValidator())
     self.setWindowTitle("Select Path")
     self.setVisible(False)
+
+  def get_input(self) -> Path:
+    return Path(self.edit.text())
 
 class ErrorDialog(BasicDialog):
   def __init__(self, parent: QWidget | None = None):
