@@ -28,7 +28,7 @@ def assets(asset):
 def entity(asset, project_paths):
     return Entity(
         unique_name="meu_buneco", sprite=asset,
-        width=5, height=10, script_path=project_paths.script_dir / "buneco.py",
+        width=5, height=10, script_path=project_paths.entities_script_dir / "buneco.py",
         variables={}, hooks={},
     )
 

@@ -25,7 +25,7 @@ def setup_project(paths: ProjectPaths):
     ))
     (paths.entities_dir / "meu_buneco.json").write_text(json.dumps({
         "unique_name": "meu_buneco", "sprite_name": "sprite",
-        "width": 5, "height": 10, "script_path": str(paths.script_dir / "buneco.py"),
+        "width": 5, "height": 10, "script_path": str(paths.entities_script_dir / "buneco.py"),
         "variables": {"vida": 100}, "hooks": {"on_spawn": "inicializar"},
     }))
     (paths.scenes_dir / "level01.json").write_text(json.dumps({
