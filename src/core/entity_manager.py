@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from core.model import Asset, Entity
 from core.model_parsers import EntityParser
 from core.registers import Registry
@@ -42,3 +44,6 @@ class EntityManager(ProjectPartsManager):
         entity = self.entities.get(unique_name)
         if entity is not None and hasattr(entity, property_name):
             setattr(entity, property_name, new_value)
+
+    def _folders(self, project_paths: ProjectPaths) -> list[Path]:
+        return [project_paths.entities_dir, project_paths.entities_script_dir]

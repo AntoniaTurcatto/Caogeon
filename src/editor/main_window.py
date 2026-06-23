@@ -9,9 +9,9 @@ from PySide6.QtWidgets import (QApplication,
                                QVBoxLayout, QHBoxLayout, QWidget)
 
 from core.managers import ProjectPaths
-from core.model import ProjectPart
 from core.project_manager import ProjectManager
 from editor.dialogs.basic_dialogs import DialogManager
+from editor.managers import EditorManager
 from editor.panels.panels import BrowserPanel
 from editor.panels.inspectors import GenericInspectorPanel
 
@@ -23,6 +23,7 @@ class MainWindow(QMainWindow):
         self.proj_mgr = project_mgr
         self.setMinimumSize(800, 600)
         self.init_ui()
+        self.editor_mgr = EditorManager(self.proj_mgr, self.inspector_panel, self.asset_panel, self.scene_panel, self.entity_panel)
 
     def init_ui(self):
         self.setMenuBar(Menu(self))
@@ -33,9 +34,10 @@ class MainWindow(QMainWindow):
         splitter = QSplitter()
         main_layout.addWidget(splitter)
 
-        self.asset_panel = BrowserPanel(title="Assets")
-        self.asset_panel.load_assets([asset.unique_name for asset in self.proj_mgr.asset_manager.assets.as_list()])
-        splitter.addWidget(self.asset_panel)
+        splitter_panels = QSplitter()
+        splitter_panels.setOrientation(Qt.Orientation.Vertical)
+        splitter.addWidget(splitter_panels)
+        self.init_proj_parts_panels(splitter_panels)
 
         self.canvas = QLabel("Scene Canvas Aqui")
         self.canvas.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -45,18 +47,13 @@ class MainWindow(QMainWindow):
         self.inspector_panel = GenericInspectorPanel()
         splitter.addWidget(self.inspector_panel)
 
-        self.asset_panel.selected.connect(self.on_asset_selected)
-        self.inspector_panel.property_changed.connect(self.on_property_changed)
-
-    @Slot(str)
-    def on_asset_selected(self, asset_name: str):
-        asset_dict = self.proj_mgr.asset_manager.get_as_dict(asset_name)
-        if asset_dict:
-            self.inspector_panel.inspect_object(ProjectPart.ASSET, asset_name, asset_dict)
-
-    @Slot(ProjectPart, str, str, str)
-    def on_property_changed(self, proj_part: ProjectPart, unique_name: str, property_name: str, new_value: str):
-        self.proj_mgr.update_property(proj_part, unique_name, property_name, new_value)
+    def init_proj_parts_panels(self, splitter: QSplitter):
+        self.scene_panel = BrowserPanel(title="Scene")
+        self.entity_panel = BrowserPanel(title="Entities")
+        self.asset_panel = BrowserPanel(title="Assets")
+        splitter.addWidget(self.asset_panel)
+        splitter.addWidget(self.scene_panel)
+        splitter.addWidget(self.entity_panel)
 
     @Slot()
     def new_project(self):

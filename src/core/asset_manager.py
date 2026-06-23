@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from core.model_parsers import AssetParser
 from .registers import Registry
 from .serializers import  DataSerializer, SerializeStrategy
@@ -42,3 +44,6 @@ class AssetManager(ProjectPartsManager):
         asset = self.assets.get(unique_name)
         if asset is not None and hasattr(asset, property_name):
             setattr(asset, property_name, new_value)
+
+    def _folders(self, project_paths: ProjectPaths) -> list[Path]:
+        return [project_paths.assets_dir, project_paths.assets_files_dir]

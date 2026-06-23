@@ -1,7 +1,6 @@
 from core.asset_manager import AssetManager
 from core.entity_manager import EntityManager
 from core.managers import Manager, ProjectPaths
-from core.model import ProjectPart
 from core.model_parsers import ProjectParser, WindowSpecsParser
 from core.scene_manager import SceneManager
 from core.serializers import DataSerializer, JSONSerializer
@@ -26,11 +25,3 @@ class ProjectManager(Manager):
         self.entity_manager.save(project_paths)
         self.scene_manager.save(project_paths)
         self.serializer.save_to_file(self.project, project_paths.project_file)
-
-    def update_property(self, proj_part: ProjectPart, unique_name: str, property_name: str, new_value: str):
-        if proj_part == ProjectPart.SCENE:
-            self.scene_manager.update_property(unique_name, property_name, new_value)
-        elif proj_part == ProjectPart.ENTITY:
-            self.entity_manager.update_property(unique_name, property_name, new_value)
-        elif proj_part == ProjectPart.ASSET:
-            self.asset_manager.update_property(unique_name, property_name, new_value)

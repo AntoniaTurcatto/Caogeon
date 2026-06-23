@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any
 
 class ProjectPart(Enum):
-    SCENE = "scene"
-    ENTITY = "entity"
-    ASSET = "asset"
+    ASSETS = "assets"
+    ENTITIES = "entities"
+    SCENES = "scenes"
 
 @dataclass
 class Asset:

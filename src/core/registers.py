@@ -1,16 +1,21 @@
-from typing import Generic, TypeVar
+from typing import Callable, Generic, TypeVar
 
 T = TypeVar('T')
 
 class Registry(Generic[T]):
     def __init__(self) -> None:
         self._data: dict[str, T] = {}
+        self.on_change: list[Callable] = []
 
     def register(self, key: str, obj: T) -> None:
         self._data[key] = obj
+        for callback in self.on_change:
+            callback()
 
     def unregister(self, key: str):
         self._data.pop(key)
+        for callback in self.on_change:
+            callback()
 
     def get(self, key: str) -> T:
         if key not in self._data:

@@ -1,3 +1,6 @@
+from pathlib import Path
+from sys import prefix
+
 from core.model import Asset, Entity, Scene
 from core.model_parsers import InstancedEntityParser, SceneParser
 from core.registers import Registry
@@ -45,3 +48,6 @@ class SceneManager(ProjectPartsManager):
         scene = self.scenes.get(unique_name)
         if scene is not None and hasattr(scene, property_name):
             setattr(scene, property_name, new_value)
+
+    def _folders(self, project_paths: ProjectPaths) -> list[Path]:
+        return [project_paths.scenes_dir, project_paths.scenes_script_dir]
