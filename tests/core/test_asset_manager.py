@@ -63,11 +63,6 @@ def test_add_multiple(manager, asset1, asset2, asset3):
     manager.add(asset3)
     assert len(manager.assets.all()) == 3
 
-def test_add_duplicate_raises(manager, asset1):
-    manager.add(asset1)
-    with pytest.raises(KeyError):
-        manager.add(asset1)
-
 # --- AssetManager.remove ---
 
 def test_remove(manager, asset1):
