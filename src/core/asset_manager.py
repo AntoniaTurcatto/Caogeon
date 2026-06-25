@@ -25,25 +25,8 @@ class AssetManager(ProjectPartsManager):
             filepath = project_paths.assets_dir / f"{asset.unique_name}.json"
             self.serializer.save_to_file(asset, filepath)
 
-    def add(self, obj: Asset):
-        if self.assets.exists(obj.unique_name):
-            raise KeyError("Asset already existent")
-
-        self.assets.register(obj.unique_name, obj)
-
-    def remove(self, unique_name: str):
-        self.assets.unregister(unique_name)
-
-    def get_as_dict(self, unique_name: str) -> dict:
-        asset = self.assets.get(unique_name)
-        if asset is None:
-            return {}
-        return self.serializer.parser.to_dict(asset)
-
-    def update_property(self, unique_name: str, property_name: str, new_value: str):
-        asset = self.assets.get(unique_name)
-        if asset is not None and hasattr(asset, property_name):
-            setattr(asset, property_name, new_value)
+    def registry(self) -> Registry[Asset]:
+        return self.assets
 
     def _folders(self, project_paths: ProjectPaths) -> list[Path]:
         return [project_paths.assets_dir, project_paths.assets_files_dir]

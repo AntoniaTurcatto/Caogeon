@@ -1,13 +1,89 @@
-from tkinter.constants import N
-
+from abc import abstractmethod
+from pathlib import Path
+from re import A
+from typing import Generic, TypeVar, Callable, get_args
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFormLayout, QLabel, QLineEdit, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QSpinBox, QVBoxLayout, QWidget
 
-from core.model import ProjectPart
+from core.model import Asset, Entity, ProjectPart, ProjectPartBase, Scene
+from core.registers import Registry
+
+TProjectPartBase = TypeVar("TProjectPartBase", bound=ProjectPartBase)
+
+class ProjectPartSelector(QComboBox, Generic[TProjectPartBase]):
+  asset_changed = Signal(object)
+
+  def __init__(self, objs: Registry[TProjectPartBase], allow_none: bool = True, parent=None):
+    super().__init__(parent)
+    self.objs = objs
+    self.objs.on_change.append(self.reload_and_restore)
+    self.allow_none = allow_none
+    self.reload()
+
+  def reload(self):
+    self.clear()
+    if self.allow_none:
+      self.addItem("", None)
+    for obj in self.objs:
+      self.addItem(obj.unique_name, obj)
+
+  def reload_and_restore(self):
+    current_item = self.currentData()
+    self.reload()
+    if current_item is not None:
+      self.setCurrentText(current_item.unique_name)
+
+  def selected(self) -> TProjectPartBase | None:
+    return self.currentData()
+
+class PathSelector(QWidget):
+  def __init__(self, parent=None):
+    super().__init__(parent)
+    layout = QHBoxLayout(self)
+    layout.setContentsMargins(0, 0, 0, 0)
+    self.path_edit = QLineEdit()
+    layout.addWidget(self.path_edit)
+    self.browse_button = QPushButton("Browse")
+    layout.addWidget(self.browse_button)
+    self.browse_button.clicked.connect(self.browse)
+
+  def browse(self):
+    path = QFileDialog.getExistingDirectory(self, "Select Directory")
+    if path:
+      self.path_edit.setText(path)
+
+class InspectorWidgetFactory:
+  def __init__(self, assets: Registry[Asset], entities: Registry[Entity], scenes: Registry[Scene]) -> None:
+    self.assets = assets
+    self.entities = entities
+    self.scenes = scenes
+    self.widget_map: dict[type, Callable[[], QWidget]] = {
+      str: lambda: QLineEdit(),
+      int: lambda: QSpinBox(),
+      Asset: lambda: ProjectPartSelector(self.assets),
+      Entity: lambda: ProjectPartSelector(self.entities),
+      Scene: lambda: ProjectPartSelector(self.scenes),
+      Path: lambda: PathSelector(),
+    }
+
+  def create_widget(self, type_var: type) -> QWidget:
+    type_var = self.resolve_optional(type_var)
+    widget_factory = self.widget_map.get(type_var)
+    if widget_factory:
+      return widget_factory()
+    return QLineEdit()
+
+  def resolve_optional(self, type_var: type) -> type:
+    args = get_args(type_var)
+    if type(None) in args:
+      non_none_args = [arg for arg in args if arg is not type(None)]
+      if len(non_none_args) == 1:
+        return non_none_args[0]
+    return type_var
 
 class GenericInspectorPanel(QWidget):
 
-  # var_name, new_value
+  # Project part, object id, property name, new value
   property_changed = Signal(ProjectPart,str, str, str)
 
   def __init__(self, parent = None):

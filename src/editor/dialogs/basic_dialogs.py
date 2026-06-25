@@ -80,7 +80,7 @@ class InputDialog(BasicDialog):
 
   on_cancel = Signal()
 
-  def __init__(self, width: int, height: int, parent: QWidget | None = None, validator: QValidator | None = None):
+  def __init__(self, width: int = 400, height: int = 100, parent: QWidget | None = None, validator: QValidator | None = None):
     super().__init__(width, height, parent=parent)
     self.edit = QLineEdit()
     self.edit_layout.addWidget(self.edit)
@@ -136,3 +136,4 @@ class DialogManager:
   def __init__(self):
     self.path_dialog = PathDialog()
     self.error_dialog = ErrorDialog()
+    self.input_dialog = InputDialog()
