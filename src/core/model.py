@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -9,21 +10,47 @@ class ProjectPart(Enum):
     SCENES = "scenes"
 
 @dataclass
-class Asset:
-    """Class to represent a project's asset"""
+class ProjectPartBase:
+    UNIQUE_NAME_VAR = "unique_name"
     unique_name: str
-    path: Path
+
+    @classmethod
+    def property_types(cls) -> dict[str, type]:
+        return {
+          "unique_name": str,
+        }
 
 @dataclass
-class Entity:
+class Asset(ProjectPartBase):
+    """Class to represent a project's asset"""
+    path: Path
+
+    @classmethod
+    def property_types(cls) -> dict[str, type]:
+        return super().property_types() | {
+            "path": Path,
+        }
+
+@dataclass
+class Entity(ProjectPartBase):
     """A class to represent a type of a entity, such a certain enemy, a rock, etc"""
-    unique_name: str
     sprite: Asset
     width: int
     height: int
     script_path: Path
     variables: dict[str, Any]
     hooks: dict[str, str] #[value_passed_to_on_message, real_function_within_script]
+
+    @classmethod
+    def property_types(cls) -> dict[str, type]:
+        return super().property_types() | {
+            "sprite": Asset,
+            "width": int,
+            "height": int,
+            "script_path": Path,
+            "variables": dict[str, Any],
+            "hooks": dict[str, str],
+        }
 
 @dataclass
 class InstancedEntity:
@@ -33,12 +60,28 @@ class InstancedEntity:
     x: int
     y: int
 
+    @classmethod
+    def property_types(cls) -> dict[str, type]:
+        return {
+            "entity": Entity,
+            "id": str,
+            "x": int,
+            "y": int,
+        }
+
 @dataclass
-class Scene:
-    unique_name: str
-    background: Asset
+class Scene(ProjectPartBase):
+    background: Asset | None
     entities: list[InstancedEntity]
     script_path: Path
+
+    @classmethod
+    def property_types(cls) -> dict[str, type]:
+        return super().property_types() | {
+            "background": Asset | None,
+            "entities": list[InstancedEntity],
+            "script_path": Path,
+        }
 
 @dataclass
 class WindowSpecs:

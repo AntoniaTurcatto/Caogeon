@@ -7,6 +7,9 @@ class Registry(Generic[T]):
         self._data: dict[str, T] = {}
         self.on_change: list[Callable] = []
 
+    def __iter__(self):
+        return iter(self._data.values())
+
     def register(self, key: str, obj: T) -> None:
         self._data[key] = obj
         for callback in self.on_change:
@@ -40,3 +43,13 @@ class Registry(Generic[T]):
 
     def as_list(self) -> list[T]:
         return list(self._data.values())
+
+    def first_valid_name(self, base_name: str) -> str:
+        if not self.exists(base_name):
+            return base_name
+        count = 1
+        while True:
+            new_name = f"{base_name}_{count}"
+            if not self.exists(new_name):
+                return new_name
+            count += 1

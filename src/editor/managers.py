@@ -28,10 +28,27 @@ class EditorManager:
     self.bind_inspect_strategy()
 
   def bind_events(self):
+    self.bind_selected()
+    self.bind_removed()
+    self.inspector.property_changed.connect(self.update_property)
+    self.bind_property_changed()
+
+  def bind_selected(self):
     self.asset_panel.selected.connect(self.asset_selected)
     self.scene_panel.selected.connect(self.scene_selected)
     self.entity_panel.selected.connect(self.entity_selected)
-    self.inspector.property_changed.connect(self.update_property)
+
+  def bind_removed(self):
+    self.asset_panel.removed.connect(self.asset_removed)
+    self.scene_panel.removed.connect(self.scene_removed)
+    self.entity_panel.removed.connect(self.entity_removed)
+
+  def bind_id_changed(self):
+    self.proj_manager.asset_manager.add_listener_id_updated(lambda asset, old_id: self.asset_panel.update_item_label(old_label=old_id, new_label=asset.unique_name))
+    self.proj_manager.entity_manager.add_listener_id_updated(lambda entity, old_id: self.entity_panel.update_item_label(old_label=old_id, new_label=entity.unique_name))
+    self.proj_manager.scene_manager.add_listener_id_updated(lambda scene, old_id: self.scene_panel.update_item_label(old_label=old_id, new_label=scene.unique_name))
+
+  def bind_property_changed(self):
     self.proj_manager.asset_manager.assets.on_change.append(
       lambda: self.asset_panel.load_assets(
         [a.unique_name for a in self.proj_manager.asset_manager.assets.as_list()]
@@ -64,6 +81,18 @@ class EditorManager:
   @Slot(str)
   def entity_selected(self, entity_id):
     self.inspector.inspect_object(ProjectPart.ENTITIES, entity_id, self.proj_manager.entity_manager.get_as_dict(entity_id))
+
+  @Slot(str)
+  def asset_removed(self, asset_id):
+    self.proj_manager.asset_manager.assets.unregister(asset_id)
+
+  @Slot(str)
+  def scene_removed(self, scene_id):
+    self.proj_manager.scene_manager.scenes.unregister(scene_id)
+
+  @Slot(str)
+  def entity_removed(self, entity_id):
+    self.proj_manager.entity_manager.entities.unregister(entity_id)
 
   @Slot(ProjectPart, str, str, str)
   def update_property(self, type: ProjectPart, name: str, property_name: str, new_value: str):

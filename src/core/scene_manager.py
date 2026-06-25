@@ -29,25 +29,19 @@ class SceneManager(ProjectPartsManager):
             filepath = project_paths.scenes_dir / f"{scene.unique_name}.json"
             self.serializer.save_to_file(scene, filepath)
 
-    def add(self, obj: Scene):
-        if self.scenes.exists(obj.unique_name):
-            raise KeyError("Scene already existent")
+    def add_empty(self, project_paths: ProjectPaths) -> Scene:
+        unique_name = self.scenes.first_valid_name("empty scene")
+        scene = Scene(unique_name=unique_name, background=None, entities=[], script_path=self._create_empty_script(project_paths, unique_name))
+        self.scenes.register(unique_name, scene)
+        return scene
 
-        self.scenes.register(obj.unique_name, obj)
-
-    def remove(self, unique_name: str):
-        self.scenes.unregister(unique_name)
-
-    def get_as_dict(self, unique_name: str) -> dict:
-        scene = self.scenes.get(unique_name)
-        if scene is None:
-            return {}
-        return self.serializer.parser.to_dict(scene)
-
-    def update_property(self, unique_name: str, property_name: str, new_value: str):
-        scene = self.scenes.get(unique_name)
-        if scene is not None and hasattr(scene, property_name):
-            setattr(scene, property_name, new_value)
+    def _create_empty_script(self, project_paths: ProjectPaths, unique_name: str) -> Path:
+        script_path = project_paths.scenes_script_dir / f"{unique_name}.py"
+        script_path.touch()
+        return script_path
 
     def _folders(self, project_paths: ProjectPaths) -> list[Path]:
         return [project_paths.scenes_dir, project_paths.scenes_script_dir]
+
+    def registry(self) -> Registry[Scene]:
+        return self.scenes

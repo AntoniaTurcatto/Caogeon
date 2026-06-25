@@ -73,20 +73,23 @@ class SceneParser(ObjParserStrategy[Scene]):
     def to_dict(self, scene: Scene) -> dict:
         data = {
             "unique_name": scene.unique_name,
-            "background": scene.background.unique_name,
+            "background": scene.background.unique_name if scene.background else "",
             "entities": [self.instanced_entity_parser.to_dict(e) for e in scene.entities],
             "script_path": str(scene.script_path),
         }
         return data
 
     def from_dict(self, data: dict) -> Scene:
+        background = self.assets.try_get(data["background"])
+        if background is None and data["background"] != "":
+            raise ValueError(f"Background asset not found: {data['background']}")
+
         return Scene(
             unique_name = data["unique_name"],
-            background  = self.assets.get(data["background"]),
+            background  = background,
             entities    = [self.instanced_entity_parser.from_dict(e) for e in data["entities"]],
             script_path = Path(data["script_path"]),
         )
-
 
 class WindowSpecsParser(ObjParserStrategy[WindowSpecs]):
     def to_dict(self, window: WindowSpecs) -> dict:

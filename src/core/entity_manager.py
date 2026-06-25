@@ -25,25 +25,8 @@ class EntityManager(ProjectPartsManager):
             filepath = project_paths.entities_dir / f"{entity.unique_name}.json"
             self.serializer.save_to_file(entity, filepath)
 
-    def add(self, obj: Entity):
-        if self.entities.exists(obj.unique_name):
-            raise KeyError("Entity already existent")
-
-        self.entities.register(obj.unique_name, obj)
-
-    def remove(self, unique_name: str):
-        self.entities.unregister(unique_name)
-
-    def get_as_dict(self, unique_name: str) -> dict:
-        entity = self.entities.get(unique_name)
-        if entity is None:
-            return {}
-        return self.serializer.parser.to_dict(entity)
-
-    def update_property(self, unique_name: str, property_name: str, new_value: str):
-        entity = self.entities.get(unique_name)
-        if entity is not None and hasattr(entity, property_name):
-            setattr(entity, property_name, new_value)
-
     def _folders(self, project_paths: ProjectPaths) -> list[Path]:
         return [project_paths.entities_dir, project_paths.entities_script_dir]
+
+    def registry(self) -> Registry[Entity]:
+        return self.entities

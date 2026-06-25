@@ -60,6 +60,7 @@ class Menu(QMenuBar):
         self.proj_mgr = proj_mgr
         self.dialogs_mgr = dialogs_mgr
         self.add_project_menu()
+        self.new_proj_path: Path | None = None
 
     def add_project_menu(self):
         project_menu = self.addMenu("file")
@@ -75,8 +76,19 @@ class Menu(QMenuBar):
 
     @Slot()
     def on_confirm_new_project(self):
+      self.new_proj_path = self.dialogs_mgr.path_dialog.get_input()
+      self.new_project_name()
+
+    def new_project_name(self):
+      self.dialogs_mgr.input_dialog.show("Name", self.on_confirm_new_project_name)
+
+    @Slot()
+    def on_confirm_new_project_name(self):
+      if self.new_proj_path is None:
+        self.dialogs_mgr.error_dialog.show("Please select a project path first.")
+        return
       try:
-        self.proj_mgr.new(ProjectPaths(self.dialogs_mgr.path_dialog.get_input()))
+        self.proj_mgr.new(ProjectPaths(self.new_proj_path), self.dialogs_mgr.input_dialog.get_input())
       except Exception as e:
         self.dialogs_mgr.error_dialog.show("Failed to create project: " + str(e))
 
@@ -117,6 +129,6 @@ class Menu(QMenuBar):
     @Slot()
     def on_confirm_import_asset(self):
       try:
-        self.proj_mgr.asset_manager.import_asset(self.dialogs_mgr.path_dialog.get_input())
+        self.proj_mgr.import_asset(self.dialogs_mgr.path_dialog.get_input())
       except Exception as e:
         self.dialogs_mgr.error_dialog.show("Failed to import asset: " + str(e))
