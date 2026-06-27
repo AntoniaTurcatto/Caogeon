@@ -7,8 +7,8 @@ from .managers import ProjectPartsManager, ProjectPaths
 from .model import Asset
 
 class AssetManager(ProjectPartsManager):
-    def __init__(self,  serializer_strategy: SerializeStrategy) -> None:
-        super().__init__(DataSerializer(AssetParser(), serializer_strategy))
+    def __init__(self, project_paths: ProjectPaths | None, serializer_strategy: SerializeStrategy) -> None:
+        super().__init__(project_paths, DataSerializer(AssetParser(), serializer_strategy))
         self.assets = Registry[Asset]()
 
     def load(self, project_paths: ProjectPaths):

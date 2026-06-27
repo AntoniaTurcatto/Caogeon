@@ -12,10 +12,11 @@ from core.serializers import DataSerializer, JSONSerializer
 class ProjectManager(Manager):
     def __init__(self) -> None:
         self.serializer_strat = JSONSerializer()
-        self.asset_manager = AssetManager(self.serializer_strat)
-        self.entity_manager = EntityManager(self.serializer_strat, self.asset_manager.assets)
-        self.scene_manager = SceneManager(self.serializer_strat, self.asset_manager.assets, self.entity_manager.entities)
         self.proj_paths: ProjectPaths | None = None
+        self.asset_manager = AssetManager(self.proj_paths, self.serializer_strat)
+        self.entity_manager = EntityManager(self.proj_paths, self.serializer_strat, self.asset_manager.assets)
+        self.scene_manager = SceneManager(self.proj_paths, self.serializer_strat, self.asset_manager.assets, self.entity_manager.entities)
+
         self.project = None
         super().__init__(DataSerializer(ProjectParser(WindowSpecsParser(), self.scene_manager.scenes), self.serializer_strat))
 

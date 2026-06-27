@@ -56,8 +56,9 @@ class CanCreateBlank(ABC, Generic[TProjectPartBase]):
         pass
 
 class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
-    def __init__(self, serializer: DataSerializer) -> None:
+    def __init__(self, project_paths: ProjectPaths | None, serializer: DataSerializer) -> None:
         super().__init__(serializer)
+        self.project_paths = project_paths
         # List of listeners for when an ID is updated, called with the updated object and old unique name
         self.on_id_updated: list[Callable[[ProjectPartBase, str], None]] = []
 

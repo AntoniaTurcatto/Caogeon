@@ -30,10 +30,22 @@ class BasicDialog(QDialog):
 
     main_layout = QVBoxLayout()
     main_layout.addLayout(self.edit_layout)
+
+    for widget in self._extra_layout_widgets():
+      self.edit_layout.addWidget(widget)
+
     main_layout.addLayout(self.btn_layout)
     self.setFixedSize(width, height)
     self.setLayout(main_layout)
     self._init_buttons()
+
+  def _extra_layout_widgets(self) -> list[QWidget]:
+    """For subclasses to override. Will be added to the edit_layout before the buttons, vertically stacked."""
+    return []
+
+  def _clear(self):
+    """For subclasses to override. Will be called before the dialog is shown."""
+    pass
 
   def _init_buttons(self) -> None:
     extras = self._extra_buttons()
@@ -59,9 +71,20 @@ class BasicDialog(QDialog):
 
   @Slot()
   def on_confirm_slot(self) -> None:
+    if not self.is_valid():
+      return
+    self.before_confirm()
     if self.on_confirm is not None:
       self.on_confirm.emit()
     self.close()
+
+  def is_valid(self) -> bool:
+    """For subclasses to override. If true, the dialog will be accepted when the user clicks the confirm button."""
+    return True
+
+  def before_confirm(self):
+    """For subclasses to override. For extra operations before the dialog is confirmed and after is valid."""
+    pass
 
   def disconnect_slot(self, signal: SignalInstance):
     try:
@@ -70,6 +93,7 @@ class BasicDialog(QDialog):
       pass
 
   def show(self, caption: str, on_confirm: Callable[[], None] | None = None):
+    self._clear()
     self.caption_lb.setText(caption)
     self.disconnect_slot(self.on_confirm)
     if on_confirm is not None:
@@ -101,6 +125,9 @@ class InputDialog(ConfirmDialog):
     self.edit_layout.addWidget(self.widget)
     if validator is not None:
       self.get_editor().get_line_edit().setValidator(validator)
+
+  def _clear(self):
+    self.get_editor().get_line_edit().clear()
 
   def create_widget(self, parent: QWidget | None = None) -> QWidget:
     return StringWidget(parent)

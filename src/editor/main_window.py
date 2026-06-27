@@ -14,7 +14,7 @@ from editor.dialogs.basic_dialogs import DialogManager
 from editor.managers import EditorManager
 from editor.panels.panels import BrowserPanel
 from editor.panels.inspectors import GenericInspectorPanel
-from editor.utils.files import PathUtils
+from utils.files import PathUtils
 
 class MainWindow(QMainWindow):
     def __init__(self, project_mgr: ProjectManager, dialogs_mgr: DialogManager, parent = None):

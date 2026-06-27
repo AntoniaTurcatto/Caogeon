@@ -5,14 +5,16 @@ from core.model import Asset, Entity, Scene
 from core.model_parsers import InstancedEntityParser, SceneParser
 from core.registers import Registry
 from core.serializers import DataSerializer, SerializeStrategy
+from utils.files import PathUtils
 from .managers import CanCreateBlank, ProjectPartsManager, ProjectPaths
 
 class SceneManager(ProjectPartsManager, CanCreateBlank):
     def __init__(self,
-                serializer_strategy: SerializeStrategy,
-                 assets: Registry[Asset],
-                 entities: Registry[Entity]) -> None:
-        super().__init__(DataSerializer(SceneParser(assets, InstancedEntityParser(entities)), serializer_strategy))
+        project_paths: ProjectPaths | None,
+        serializer_strategy: SerializeStrategy,
+        assets: Registry[Asset],
+        entities: Registry[Entity]) -> None:
+        super().__init__(project_paths, DataSerializer(SceneParser(assets, InstancedEntityParser(entities)), serializer_strategy))
         self.scenes = Registry[Scene]()
 
     def load(self, project_paths: ProjectPaths):
@@ -31,14 +33,9 @@ class SceneManager(ProjectPartsManager, CanCreateBlank):
 
     def create_blank(self, project_paths: ProjectPaths) -> Scene:
         unique_name = self.scenes.first_valid_name("empty scene")
-        scene = Scene(unique_name=unique_name, background=None, entities=[], script_path=self._create_empty_script(project_paths, unique_name))
+        scene = Scene(unique_name=unique_name, background=None, entities=[], script_path=PathUtils.create_empty_script(project_paths.scenes_script_dir, unique_name))
         self.scenes.register(unique_name, scene)
         return scene
-
-    def _create_empty_script(self, project_paths: ProjectPaths, unique_name: str) -> Path:
-        script_path = project_paths.scenes_script_dir / f"{unique_name}.py"
-        script_path.touch()
-        return script_path
 
     def _folders(self, project_paths: ProjectPaths) -> list[Path]:
         return [project_paths.scenes_dir, project_paths.scenes_script_dir]
