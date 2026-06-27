@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
         self.canvas.setStyleSheet("background-color: #2b2b2b; color: white;")
         splitter.addWidget(self.canvas)
 
-        self.inspector_panel = GenericInspectorPanel()
+        self.inspector_panel = GenericInspectorPanel(self.proj_mgr.asset_manager.assets, self.proj_mgr.entity_manager.entities, self.proj_mgr.scene_manager.scenes)
         splitter.addWidget(self.inspector_panel)
 
     def init_proj_parts_panels(self, splitter: QSplitter):
@@ -72,11 +72,11 @@ class Menu(QMenuBar):
 
     @Slot()
     def new_project(self):
-      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_new_project)
+      self.dialogs_mgr.path_folder_dialog.show("Path", self.on_confirm_new_project)
 
     @Slot()
     def on_confirm_new_project(self):
-      self.new_proj_path = self.dialogs_mgr.path_dialog.get_input()
+      self.new_proj_path = self.dialogs_mgr.path_folder_dialog.get_input()
       self.new_project_name()
 
     def new_project_name(self):
@@ -94,22 +94,22 @@ class Menu(QMenuBar):
 
     @Slot()
     def load_project(self):
-      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_load_project)
+      self.dialogs_mgr.path_folder_dialog.show("Path", self.on_confirm_load_project)
 
     @Slot()
     def on_confirm_load_project(self):
       try:
-        self.proj_mgr.load(ProjectPaths(self.dialogs_mgr.path_dialog.get_input()))
+        self.proj_mgr.load(ProjectPaths(self.dialogs_mgr.path_folder_dialog.get_input()))
       except Exception as e:
         self.dialogs_mgr.error_dialog.show("Failed to open project: " + str(e))
 
     @Slot()
     def save_project_at(self):
-      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_save_project_at)
+      self.dialogs_mgr.path_folder_dialog.show("Path", self.on_confirm_save_project_at)
 
     @Slot()
     def on_confirm_save_project_at(self):
-      save_as = self.dialogs_mgr.path_dialog.get_input()
+      save_as = self.dialogs_mgr.path_folder_dialog.get_input()
       try:
         self.proj_mgr.save(ProjectPaths(save_as))
       except Exception as e:
@@ -124,11 +124,11 @@ class Menu(QMenuBar):
 
     @Slot()
     def import_asset(self):
-      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_import_asset)
+      self.dialogs_mgr.path_file_dialog.show("Path", self.on_confirm_import_asset)
 
     @Slot()
     def on_confirm_import_asset(self):
       try:
-        self.proj_mgr.import_asset(self.dialogs_mgr.path_dialog.get_input())
+        self.proj_mgr.import_asset(self.dialogs_mgr.path_file_dialog.get_input())
       except Exception as e:
         self.dialogs_mgr.error_dialog.show("Failed to import asset: " + str(e))

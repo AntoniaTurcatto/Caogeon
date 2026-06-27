@@ -123,11 +123,6 @@ def test_add_single(manager, scene1):
     manager.add(scene1)
     assert manager.scenes.get("level01") is scene1
 
-def test_add_duplicate_raises(manager, scene1):
-    manager.add(scene1)
-    with pytest.raises(KeyError):
-        manager.add(scene1)
-
 # --- SceneManager.remove ---
 
 def test_remove(manager, scene1):

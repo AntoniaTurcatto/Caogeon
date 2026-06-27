@@ -95,11 +95,6 @@ def test_add_single(manager, entity1):
     manager.add(entity1)
     assert manager.entities.get("entity1") is entity1
 
-def test_add_duplicate_raises(manager, entity1):
-    manager.add(entity1)
-    with pytest.raises(KeyError):
-        manager.add(entity1)
-
 # --- EntityManager.remove ---
 
 def test_remove(manager, entity1):

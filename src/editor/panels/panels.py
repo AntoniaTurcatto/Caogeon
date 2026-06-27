@@ -2,6 +2,11 @@ from PySide6 import QtCore
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import QListWidget, QMenu, QVBoxLayout, QLabel, QWidget
 
+class BrowserListWidget(QListWidget):
+  def focusOutEvent(self, event):
+      self.clearSelection()
+      self.setCurrentRow(-1)
+      super().focusOutEvent(event)
 
 class BrowserPanel(QWidget):
 
@@ -15,7 +20,7 @@ class BrowserPanel(QWidget):
     main_layout.setContentsMargins(0, 0, 0, 0)
     main_layout.addWidget(QLabel(f"<b>{title}</b>"))
 
-    self.list_widget = QListWidget()
+    self.list_widget = BrowserListWidget()
     main_layout.addWidget(self.list_widget)
 
     self.list_widget.currentTextChanged.connect(self._on_item_changed)

@@ -2,7 +2,7 @@ from typing import Callable
 
 from PySide6.QtCore import Slot
 
-from core.model import ProjectPart
+from core.model import Asset, Entity, ProjectPartBase, PropertyChange, Scene
 from core.project_manager import ProjectManager
 from editor.panels.inspectors import GenericInspectorPanel
 from editor.panels.panels import BrowserPanel
@@ -23,14 +23,14 @@ class EditorManager:
     self.asset_panel = asset_panel
     self.scene_panel = scene_panel
     self.entity_panel = entity_panel
-    self.map_inspect_strategy: dict[ProjectPart, Callable[[str, str, str], None]] = {}
+    self.map_inspect_strategy: dict[type[ProjectPartBase], Callable[[PropertyChange], None]] = {}
     self.bind_events()
     self.bind_inspect_strategy()
 
   def bind_events(self):
     self.bind_selected()
     self.bind_removed()
-    self.inspector.property_changed.connect(self.update_property)
+    self.inspector.property_edited.connect(self.update_property)
     self.bind_property_changed()
 
   def bind_selected(self):
@@ -66,21 +66,27 @@ class EditorManager:
     )
 
   def bind_inspect_strategy(self):
-    self.map_inspect_strategy[ProjectPart.ASSETS] = self.proj_manager.asset_manager.update_property
-    self.map_inspect_strategy[ProjectPart.SCENES] = self.proj_manager.scene_manager.update_property
-    self.map_inspect_strategy[ProjectPart.ENTITIES] = self.proj_manager.entity_manager.update_property
+    self.map_inspect_strategy[Asset] = self.proj_manager.asset_manager.update_property
+    self.map_inspect_strategy[Scene] = self.proj_manager.scene_manager.update_property
+    self.map_inspect_strategy[Entity] = self.proj_manager.entity_manager.update_property
 
   @Slot(str)
   def asset_selected(self, asset_id):
-    self.inspector.inspect_object(ProjectPart.ASSETS, asset_id, self.proj_manager.asset_manager.get_as_dict(asset_id))
+    asset = self.proj_manager.asset_manager.get(asset_id)
+    if asset is not None:
+      self.inspector.inspect(asset)
 
   @Slot(str)
   def scene_selected(self, scene_id):
-    self.inspector.inspect_object(ProjectPart.SCENES, scene_id, self.proj_manager.scene_manager.get_as_dict(scene_id))
+    scene = self.proj_manager.scene_manager.get(scene_id)
+    if scene is not None:
+      self.inspector.inspect(scene)
 
   @Slot(str)
   def entity_selected(self, entity_id):
-    self.inspector.inspect_object(ProjectPart.ENTITIES, entity_id, self.proj_manager.entity_manager.get_as_dict(entity_id))
+    entity = self.proj_manager.entity_manager.get(entity_id)
+    if entity is not None:
+      self.inspector.inspect(entity)
 
   @Slot(str)
   def asset_removed(self, asset_id):
@@ -94,6 +100,6 @@ class EditorManager:
   def entity_removed(self, entity_id):
     self.proj_manager.entity_manager.entities.unregister(entity_id)
 
-  @Slot(ProjectPart, str, str, str)
-  def update_property(self, type: ProjectPart, name: str, property_name: str, new_value: str):
-    self.map_inspect_strategy[type](name, property_name, new_value)
+  @Slot(PropertyChange)
+  def update_property(self, change: PropertyChange):
+    self.map_inspect_strategy[type(change.obj)](change)

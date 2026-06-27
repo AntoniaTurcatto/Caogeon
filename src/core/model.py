@@ -1,13 +1,6 @@
-from abc import abstractmethod
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from typing import Any
-
-class ProjectPart(Enum):
-    ASSETS = "assets"
-    ENTITIES = "entities"
-    SCENES = "scenes"
 
 @dataclass
 class ProjectPartBase:
@@ -19,6 +12,12 @@ class ProjectPartBase:
         return {
           "unique_name": str,
         }
+
+@dataclass
+class PropertyChange:
+    obj: ProjectPartBase
+    property_name: str
+    new_value: Any
 
 @dataclass
 class Asset(ProjectPartBase):
