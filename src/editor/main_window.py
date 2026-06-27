@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Callable
 from PySide6.QtCore import (Slot, Qt)
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from editor.dialogs.basic_dialogs import DialogManager
 from editor.managers import EditorManager
 from editor.panels.panels import BrowserPanel
 from editor.panels.inspectors import GenericInspectorPanel
+from editor.utils.files import PathUtils
 
 class MainWindow(QMainWindow):
     def __init__(self, project_mgr: ProjectManager, dialogs_mgr: DialogManager, parent = None):
@@ -77,13 +79,14 @@ class Menu(QMenuBar):
     @Slot()
     def on_confirm_new_project(self):
       self.new_proj_path = self.dialogs_mgr.path_folder_dialog.get_input()
-      self.new_project_name()
+      self.confirm_override_if_aplicable(self.new_proj_path, self.new_project_name)
 
-    def confirm_override_if_aplicable(self, path: Path):
-      if path.exists():
-        self.dialogs_mgr.confirm_dialog.show(f"Path {path} already exists. Override?", self.new_project_name)
-      else:
-        self.new_project_name()
+    def confirm_override_if_aplicable(self, path: Path, on_confirm: Callable[[], None]):
+      if not PathUtils.risk_of_overwrite(path):
+        on_confirm()
+        return
+
+      self.dialogs_mgr.confirm_dialog.show(f"Path {path} already exists. Override?", on_confirm)
 
     def new_project_name(self):
       self.dialogs_mgr.input_dialog.show("Name", self.on_confirm_new_project_name)
