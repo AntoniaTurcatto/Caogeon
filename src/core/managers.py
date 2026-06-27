@@ -50,6 +50,11 @@ class Manager(ABC):
     def save(self, project_paths: ProjectPaths | None = None):
         pass
 
+class CanCreateBlank(ABC, Generic[TProjectPartBase]):
+    @abstractmethod
+    def create_blank(self, project_paths: ProjectPaths) -> TProjectPartBase:
+        pass
+
 class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
     def __init__(self, serializer: DataSerializer) -> None:
         super().__init__(serializer)
