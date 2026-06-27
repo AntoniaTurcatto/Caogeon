@@ -14,33 +14,24 @@ class GenericInspectorPanel(QWidget):
     self._obj: ProjectPartBase | None = None
     self.factory = WidgetFactory(assets=assets, entities=entities, scenes=scenes)
 
-    self.main_layout = QVBoxLayout(self)
-    self.main_layout.setContentsMargins(0, 0, 0, 0)
+    main_layout = QVBoxLayout(self)
+    main_layout.setContentsMargins(0, 0, 0, 0)
 
     self.title_label = QLabel("")
-    self.main_layout.addWidget(self.title_label)
+    main_layout.addWidget(self.title_label)
 
-    self.scroll_area = QScrollArea()
-    self.scroll_area.setWidgetResizable(True)
-    self.main_layout.addWidget(self.scroll_area)
-
-    self.form_widget = QWidget()
-    self.obj_widget = ProjectPartWidget(self.factory, self.form_widget)
+    self.obj_widget = ProjectPartWidget(self.factory)
     self.obj_widget.property_edited.connect(self.property_edited.emit)
 
-    self.scroll_area.setWidget(self.form_widget)
+    main_layout.addWidget(self.obj_widget)
+    self.setLayout(main_layout)
 
   def inspect(self, obj: ProjectPartBase):
     """Builds the form fields based on obj's and inner types dictionary."""
-    self.obj_widget.reload(obj)
+    self.title_label.setText(f"<b>{obj.unique_name}</b>")
+    self.obj_widget.set_value(obj)
 
   def clear(self):
-    self.obj_widget.widget.clear()
+    self.obj_widget.set_value(None)
     self.title_label.setText("")
     self._obj = None
-
-  def _on_change(self, prop: str, value: object) -> None:
-    if self._obj is not None:
-      self.property_edited.emit(
-        PropertyChange(self._obj, prop, value)
-      )

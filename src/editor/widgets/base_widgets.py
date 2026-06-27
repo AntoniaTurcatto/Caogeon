@@ -1,12 +1,13 @@
 from abc import abstractmethod
 from pathlib import Path
-from typing import Callable, Generic, TypeVar, get_args
+import re
+from typing import Any, Callable, Generic, TypeVar, cast, get_args, get_origin
 
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLineEdit, QPushButton, QSpinBox, QTreeView, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLineEdit, QListWidget, QPushButton, QSpinBox, QTreeView, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from core.managers import TProjectPartBase
-from core.model import Asset, Entity, ProjectPartBase, PropertyChange, Scene
+from core.model import Asset, Entity, InstancedEntity, ProjectPartBase, PropertyChange, Scene
 from core.registers import Registry
 
 
@@ -30,7 +31,7 @@ class BaseWidget(Generic[TGenericWidget], QWidget):
   def bind_signals_and_slots(self, widget: TGenericWidget): ...
 
   @abstractmethod
-  def get_value(self) -> str: ...
+  def get_value(self) -> Any: ...
 
   @abstractmethod
   def set_value(self, value): ...
@@ -113,6 +114,136 @@ class PathWidget(BaseWidget[QWidget]):
   def get_editor(self) -> StringWidget:
     return self.path_edit
 
+
+class ProjectPartWidget(BaseWidget[QTreeWidget]):
+
+  property_edited = Signal(PropertyChange)
+
+  def __init__(self, factory: 'WidgetFactory', parent=None):
+    super().__init__(parent)
+    self._obj: ProjectPartBase | None = None
+    self.factory = factory
+    self.widget.setHeaderLabels(["Property", "Value"])
+    self.widget.setAlternatingRowColors(True)
+    self.widget.header().setStretchLastSection(True)
+    self.widget.header().resizeSection(0, 130)
+
+  def create_widget(self, parent=None) -> QTreeWidget:
+    return QTreeWidget(parent)
+
+  def set_value(self, obj: ProjectPartBase | None):
+    self.widget.clear()
+    if obj is not None:
+      self._obj = obj
+    if self._obj is None:
+      return
+
+    for key, value in self._obj.property_types().items():
+      item = QTreeWidgetItem(self.widget, [key])
+      item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+
+      widget = self.factory.create_widget(value)
+      if widget is None:
+        continue
+      widget.set_value(getattr(self._obj, key))
+      widget.value_changed.connect(
+          lambda val, k=key: self._on_change(k, val)
+      )
+      self.widget.setItemWidget(item, 1, widget)
+
+  def bind_signals_and_slots(self, widget: QTreeWidget):
+    self.property_edited.connect(self.value_changed.emit)
+
+  def _on_change(self, prop: str, value: object) -> None:
+    if self._obj is not None:
+      self.property_edited.emit(
+        PropertyChange(self._obj, prop, value)
+      )
+
+  def get_value(self) -> ProjectPartBase | None:
+    return self._obj
+
+class ListWidget(BaseWidget[QWidget]):
+  def __init__(self, item_type: type, factory: 'WidgetFactory', parent=None) -> None:
+    self.item_type = item_type
+    self.factory = factory
+    self.items = []
+    super().__init__(parent)
+
+  def create_widget(self, parent=None) -> QWidget:
+    container = QWidget(parent)
+    layout = QVBoxLayout(container)
+    layout.setContentsMargins(0, 0, 0, 0)
+
+    self._list = QListWidget()
+    layout.addWidget(self._list)
+
+    btn_row = QHBoxLayout()
+    self._add_btn    = QPushButton("+")
+    self._remove_btn = QPushButton("−")
+    btn_row.addWidget(self._add_btn)
+    btn_row.addWidget(self._remove_btn)
+    btn_row.addStretch()
+    layout.addLayout(btn_row)
+
+    self._part_widget = ProjectPartWidget(self.factory)
+    layout.addWidget(self._part_widget)
+
+    return container
+
+  def bind_signals_and_slots(self, widget: QWidget):
+    self._list.currentRowChanged.connect(self._on_selection_changed)
+    self._add_btn.clicked.connect(self._on_add)
+    self._remove_btn.clicked.connect(self._on_remove)
+    self._part_widget.property_edited.connect(self._on_prop_changed)
+
+  def _on_selection_changed(self, row: int):
+    if row < 0 or row >= len(self.items):
+      self._part_widget.set_value(None)
+      return
+    self._part_widget.set_value(self.items[row])
+
+  def _on_prop_changed(self, change: PropertyChange):
+    row = self._list.currentRow()
+    if row < 0 or row >= len(self.items):
+      return
+    setattr(self.items[row], change.property_name, change.new_value)
+    self._list.item(row).setText(self.items[row].unique_name)
+    self.value_changed.emit(list(self.items))
+
+  def get_value(self) -> list:
+    return self.items
+
+  def set_value(self, value: list):
+    self.items = value
+    self._reload_list()
+
+  def _reload_list(self):
+    self._list.clear()
+    for obj in self.items:
+      self._list.addItem(obj.unique_name)
+
+  def _on_remove(self):
+    row = self._list.currentRow()
+    if row < 0 or row >= len(self.items):
+      return
+    self.items.pop(row)
+    self._reload_list()
+    self._part_widget.set_value(None)
+    self.value_changed.emit(list(self.items))
+
+  def _on_add(self):
+    new_item = self.create_default_item()
+    if new_item is None:
+      return
+    self.items.append(new_item)
+    self._reload_list()
+    self._list.setCurrentRow(len(self.items) - 1)
+    self.value_changed.emit(list(self.items))
+
+  def create_default_item(self) -> Any | None:
+      return None
+
 class ProjectPartSelector(BaseWidget[QComboBox], Generic[TProjectPartBase]):
 
   def __init__(self, objs: Registry[TProjectPartBase], allow_none: bool = True, parent=None):
@@ -154,65 +285,29 @@ class ProjectPartSelector(BaseWidget[QComboBox], Generic[TProjectPartBase]):
   def create_widget(self, parent=None) -> QComboBox:
     return QComboBox(parent)
 
-
-class ProjectPartWidget(BaseWidget[QTreeWidget]):
-
-  property_edited = Signal(PropertyChange)
-
-  def __init__(self, factory: 'WidgetFactory', parent=None):
-    super().__init__(parent)
-    self._obj: ProjectPartBase | None = None
-    self.factory = factory
-    self.widget.setHeaderLabels(["Property", "Value"])
-    self.widget.setAlternatingRowColors(True)
-    self.widget.header().setStretchLastSection(True)
-    self.widget.header().resizeSection(0, 130)
-
-  def create_widget(self, parent=None) -> QTreeWidget:
-    return QTreeWidget(parent)
-
-  def reload(self, obj: ProjectPartBase | None):
-    self.widget.clear()
-    if obj is not None:
-      self._obj = obj
-    if self._obj is None:
-      return
-
-    for key, value in self._obj.property_types().items():
-      item = QTreeWidgetItem(self.widget, [key])
-      item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-
-      widget = self.factory.create_widget(value)
-      if widget is None:
-        continue
-      widget.set_value(getattr(obj, key))
-      widget.value_changed.connect(
-          lambda val, k=key: self._on_change(k, val)
-      )
-      self.widget.setItemWidget(item, 1, widget)
-
-  def _on_change(self, prop: str, value: object) -> None:
-    if self._obj is not None:
-      self.property_edited.emit(
-        PropertyChange(self._obj, prop, value)
-      )
-
 class WidgetFactory:
   def __init__(self, assets: Registry[Asset], entities: Registry[Entity], scenes: Registry[Scene]) -> None:
     self.assets = assets
     self.entities = entities
     self.scenes = scenes
+    self.list_item_type: type = str
     self.widget_map: dict[type, Callable[[], BaseWidget]] = {
       str: lambda: StringWidget(),
       int: lambda: IntWidget(),
+      list: lambda: ListWidget(self.list_item_type, self),
       Asset: lambda: ProjectPartSelector(self.assets),
       Entity: lambda: ProjectPartSelector(self.entities),
       Scene: lambda: ProjectPartSelector(self.scenes),
+      InstancedEntity: lambda: ProjectPartWidget(self),
       Path: lambda: PathWidget(),
     }
 
   def create_widget(self, type_var: type) -> BaseWidget | None:
+    origin = get_origin(type_var)
     type_var = self.resolve_optional(type_var)
+    if origin is list:
+      self.list_item_type = type_var
+
     widget_factory = self.widget_map.get(type_var)
     if widget_factory:
       return widget_factory()
