@@ -40,7 +40,7 @@ class StringWidget(BaseWidget[QLineEdit]):
     super().__init__(parent)
 
   def bind_signals_and_slots(self, widget: QLineEdit):
-    widget.textChanged.connect(self.value_changed.emit)
+    widget.editingFinished.connect(self.editing_finished)
 
   def get_value(self) -> str:
     return self.widget.text()
@@ -53,6 +53,10 @@ class StringWidget(BaseWidget[QLineEdit]):
 
   def get_line_edit(self) -> QLineEdit:
     return self.widget
+
+  @Slot()
+  def editing_finished(self):
+    self.value_changed.emit(self.widget.text())
 
 class IntWidget(BaseWidget[QSpinBox]):
   def __init__(self, parent=None):

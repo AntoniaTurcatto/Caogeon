@@ -30,6 +30,7 @@ class EditorManager:
   def bind_events(self):
     self.bind_selected()
     self.bind_removed()
+    self.bind_id_changed()
     self.inspector.property_edited.connect(self.update_property)
     self.bind_property_changed()
 

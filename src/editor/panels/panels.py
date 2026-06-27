@@ -25,6 +25,7 @@ class BrowserPanel(QWidget):
 
     self.list_widget.currentTextChanged.connect(self._on_item_changed)
     self.setLayout(main_layout)
+    self._configure_context_menu()
 
   def _configure_context_menu(self):
     self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)

@@ -12,13 +12,11 @@ class Registry(Generic[T]):
 
     def register(self, key: str, obj: T) -> None:
         self._data[key] = obj
-        for callback in self.on_change:
-            callback()
+        self._dispatch_on_change()
 
     def unregister(self, key: str):
         self._data.pop(key)
-        for callback in self.on_change:
-            callback()
+        self._dispatch_on_change()
 
     def get(self, key: str) -> T:
         if key not in self._data:
@@ -40,6 +38,7 @@ class Registry(Generic[T]):
     def replace_all(self, other: "Registry[T]"):
         self._data.clear()
         self._data.update(other._data)
+        self._dispatch_on_change()
 
     def as_list(self) -> list[T]:
         return list(self._data.values())
@@ -53,3 +52,7 @@ class Registry(Generic[T]):
             if not self.exists(new_name):
                 return new_name
             count += 1
+
+    def _dispatch_on_change(self):
+        for callback in self.on_change:
+            callback()

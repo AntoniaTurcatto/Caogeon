@@ -52,6 +52,7 @@ class ProjectManager(Manager):
         self.scene_manager.new(project_paths)
         project_paths.project_file.touch()
         self._create_empty_project(name)
+        self.save()
 
     def _create_empty_project(self, name: str):
         if self.proj_paths is None:
