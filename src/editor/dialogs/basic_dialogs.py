@@ -15,7 +15,7 @@ class BasicDialog(QDialog):
   """
   on_confirm = Signal()
 
-  def __init__(self, width: int, height: int, parent: QWidget | None = None):
+  def __init__(self, width: int = 400, height: int = 100, parent: QWidget | None = None):
     super().__init__(parent)
     self.setModal(True)
     self.caption_lb = QLabel()
@@ -76,10 +76,24 @@ class BasicDialog(QDialog):
       self.on_confirm.connect(on_confirm)
     super().show()
 
-class InputDialog(BasicDialog):
-  """Dialog for inputting text."""
+class ConfirmDialog(BasicDialog):
+  """Dialog for confirming an action."""
 
   on_cancel = Signal()
+
+  def __init__(self, width: int = 400, height: int = 100, parent: QWidget | None = None):
+    super().__init__(width, height, parent=parent)
+
+  def _extra_buttons(self) -> list[tuple[str, Callable[[], None]]]:
+    return [("Cancel", self.on_cancel_slot)]
+
+  @Slot()
+  def on_cancel_slot(self):
+    self.on_cancel.emit()
+    self.close()
+
+class InputDialog(ConfirmDialog):
+  """Dialog for inputting text."""
 
   def __init__(self, width: int = 400, height: int = 100, parent: QWidget | None = None, validator: QValidator | None = None):
     super().__init__(width, height, parent=parent)
@@ -97,16 +111,8 @@ class InputDialog(BasicDialog):
   def get_editor(self) -> StringWidget:
     return cast(StringWidget, self.get_widget())
 
-  def _extra_buttons(self) -> list[tuple[str, Callable[[], None]]]:
-    return [("Cancel", self.on_cancel_slot)]
-
   def get_input(self) -> str:
     return self.get_editor().get_line_edit().text()
-
-  @Slot()
-  def on_cancel_slot(self):
-    self.on_cancel.emit()
-    self.close()
 
   @Slot()
   def on_confirm_slot(self):
@@ -154,3 +160,4 @@ class DialogManager:
     self.path_folder_dialog = PathDialog(validator=PathFolderValidator())
     self.error_dialog = ErrorDialog()
     self.input_dialog = InputDialog()
+    self.confirm_dialog = ConfirmDialog()

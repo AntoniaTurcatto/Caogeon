@@ -79,6 +79,12 @@ class Menu(QMenuBar):
       self.new_proj_path = self.dialogs_mgr.path_folder_dialog.get_input()
       self.new_project_name()
 
+    def confirm_override_if_aplicable(self, path: Path):
+      if path.exists():
+        self.dialogs_mgr.confirm_dialog.show(f"Path {path} already exists. Override?", self.new_project_name)
+      else:
+        self.new_project_name()
+
     def new_project_name(self):
       self.dialogs_mgr.input_dialog.show("Name", self.on_confirm_new_project_name)
 
