@@ -6,15 +6,15 @@ from core.model_parsers import InstancedEntityParser, SceneParser
 from core.registers import Registry
 from core.serializers import DataSerializer, SerializeStrategy
 from utils.files import PathUtils
-from .managers import CanCreateBlank, ProjectPartsManager, ProjectPaths
+from .managers import CanCreateBlank, ProjectPartsManager, ProjectPaths, ProjectPathsState
 
 class SceneManager(ProjectPartsManager, CanCreateBlank):
     def __init__(self,
-        project_paths: ProjectPaths | None,
+        project_paths_state: ProjectPathsState,
         serializer_strategy: SerializeStrategy,
         assets: Registry[Asset],
         entities: Registry[Entity]) -> None:
-        super().__init__(project_paths, DataSerializer(SceneParser(assets, InstancedEntityParser(entities)), serializer_strategy))
+        super().__init__(project_paths_state, DataSerializer(SceneParser(assets, InstancedEntityParser(entities)), serializer_strategy))
         self.scenes = Registry[Scene]()
 
     def load(self, project_paths: ProjectPaths):
@@ -31,9 +31,12 @@ class SceneManager(ProjectPartsManager, CanCreateBlank):
             filepath = project_paths.scenes_dir / f"{scene.unique_name}.json"
             self.serializer.save_to_file(scene, filepath)
 
-    def create_blank(self, project_paths: ProjectPaths) -> Scene:
+    def create_blank(self) -> Scene:
+        if self.project_paths_state.project_paths is None:
+            return Scene(unique_name="empty scene", background=None, entities=[], script_path=Path())
+        path = self.project_paths_state.project_paths.scenes_script_dir
         unique_name = self.scenes.first_valid_name("empty scene")
-        scene = Scene(unique_name=unique_name, background=None, entities=[], script_path=PathUtils.create_empty_script(project_paths.scenes_script_dir, unique_name))
+        scene = Scene(unique_name=unique_name, background=None, entities=[], script_path=PathUtils.create_empty_script(path, unique_name))
         self.scenes.register(unique_name, scene)
         return scene
 

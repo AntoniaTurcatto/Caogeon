@@ -3,12 +3,12 @@ from pathlib import Path
 from core.model_parsers import AssetParser
 from .registers import Registry
 from .serializers import DataSerializer, SerializeStrategy
-from .managers import ProjectPartsManager, ProjectPaths
+from .managers import ProjectPartsManager, ProjectPaths, ProjectPathsState
 from .model import Asset
 
 class AssetManager(ProjectPartsManager):
-    def __init__(self, project_paths: ProjectPaths | None, serializer_strategy: SerializeStrategy) -> None:
-        super().__init__(project_paths, DataSerializer(AssetParser(), serializer_strategy))
+    def __init__(self, project_paths_state: ProjectPathsState, serializer_strategy: SerializeStrategy) -> None:
+        super().__init__(project_paths_state, DataSerializer(AssetParser(), serializer_strategy))
         self.assets = Registry[Asset]()
 
     def load(self, project_paths: ProjectPaths):

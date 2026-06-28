@@ -21,6 +21,11 @@ class ProjectPaths:
         self.entities_script_dir = Path(self.root / "scripts")
         self.project_file = Path(self.root / "project.json")
 
+class ProjectPathsState:
+    """Holds the state of project paths, to be passed accross managers."""
+    def __init__(self) -> None:
+        self.project_paths: ProjectPaths | None = None
+
 class Manager(ABC):
     def __init__(self, serializer: DataSerializer) -> None:
         self.serializer = serializer
@@ -52,13 +57,13 @@ class Manager(ABC):
 
 class CanCreateBlank(ABC, Generic[TProjectPartBase]):
     @abstractmethod
-    def create_blank(self, project_paths: ProjectPaths) -> TProjectPartBase:
+    def create_blank(self) -> TProjectPartBase:
         pass
 
 class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
-    def __init__(self, project_paths: ProjectPaths | None, serializer: DataSerializer) -> None:
+    def __init__(self, project_paths_state: ProjectPathsState, serializer: DataSerializer) -> None:
         super().__init__(serializer)
-        self.project_paths = project_paths
+        self.project_paths_state = project_paths_state
         # List of listeners for when an ID is updated, called with the updated object and old unique name
         self.on_id_updated: list[Callable[[ProjectPartBase, str], None]] = []
 

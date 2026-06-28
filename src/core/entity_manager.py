@@ -4,12 +4,12 @@ from core.model import Asset, Entity
 from core.model_parsers import EntityParser
 from core.registers import Registry
 from utils.files import PathUtils
-from .managers import ProjectPartsManager, ProjectPaths
+from .managers import ProjectPartsManager, ProjectPaths, ProjectPathsState
 from .serializers import DataSerializer, SerializeStrategy
 
 class EntityManager(ProjectPartsManager):
-    def __init__(self, project_paths: ProjectPaths | None, serializer_strategy: SerializeStrategy, assets: Registry[Asset]) -> None:
-        super().__init__(project_paths, DataSerializer(EntityParser(assets), serializer_strategy))
+    def __init__(self, project_paths_state: ProjectPathsState, serializer_strategy: SerializeStrategy, assets: Registry[Asset]) -> None:
+        super().__init__(project_paths_state, DataSerializer(EntityParser(assets), serializer_strategy))
         self.entities = Registry[Entity]()
 
     def load(self, project_paths: ProjectPaths):
@@ -27,7 +27,7 @@ class EntityManager(ProjectPartsManager):
             self.serializer.save_to_file(entity, filepath)
 
     def create(self, asset: Asset) -> Entity | None:
-        if self.project_paths is None:
+        if self.project_paths_state.project_paths is None:
           return None
         unique_name = self.registry().first_valid_name("blank entity")
         entity = Entity(
@@ -35,7 +35,7 @@ class EntityManager(ProjectPartsManager):
             sprite=asset,
             width=50,
             height=50,
-            script_path=PathUtils.create_empty_script(self.project_paths.entities_script_dir, unique_name),
+            script_path=PathUtils.create_empty_script(self.project_paths_state.project_paths.entities_script_dir, unique_name),
             variables={},
             hooks={}
         )
