@@ -281,6 +281,143 @@ class ListWidget(BaseWidget[QWidget]):
     self._part_widget.on_pre_destroy()
     super().on_pre_destroy()
 
+class DictWidget(BaseWidget[QWidget]):
+  def __init__(self, key_type: type, value_type: type, factory: 'WidgetFactory', parent=None):
+    from typing import Any as TypingAny
+    self.key_type = key_type
+    self._value_type_is_any = value_type is TypingAny
+    self.value_type = value_type
+    self.factory = factory
+    self._data: dict = {}
+    super().__init__(parent)
+
+  def create_widget(self, parent=None) -> QWidget:
+    container = QWidget(parent)
+    layout = QVBoxLayout(container)
+    layout.setContentsMargins(0, 0, 0, 0)
+
+    self._tree = QTreeWidget()
+    self._tree.setHeaderLabels(["Key", "Value"])
+    self._tree.header().setStretchLastSection(True)
+    self._tree.header().resizeSection(0, 120)
+    layout.addWidget(self._tree)
+
+    btn_row = QHBoxLayout()
+    self._add_btn    = QPushButton("+")
+    self._remove_btn = QPushButton("−")
+    btn_row.addWidget(self._add_btn)
+    btn_row.addWidget(self._remove_btn)
+    btn_row.addStretch()
+    layout.addLayout(btn_row)
+
+    return container
+
+  def bind_signals_and_slots(self, widget: QWidget):
+    self._add_btn.clicked.connect(self._on_add)
+    self._remove_btn.clicked.connect(self._on_remove)
+
+  def _make_value_widget(self, value: Any) -> BaseWidget:
+    if self._value_type_is_any:
+      # infer by value type
+      inferred = type(value) if value is not None else str
+      return self.factory.create_widget(inferred) or StringWidget()
+    return self.factory.create_widget(self.value_type) or StringWidget()
+
+  def _pick_default_for_any(self) -> Any | None:
+    """Asks the user for the type of the new value when value_type is Any."""
+    type_options = ["str", "int", "float", "bool"]
+    chosen, ok = QInputDialog.getItem(None, "Value type", "Type:", type_options, 0, False)
+    if not ok:
+      return None
+    return {"str": str, "int": int, "float": float, "bool": bool}[chosen]()
+
+  def _add_row(self, key: str, value: Any):
+    item = QTreeWidgetItem(self._tree)
+    item.setData(0, Qt.ItemDataRole.UserRole, key)
+
+    key_widget = StringWidget()
+    key_widget.set_value(key)
+    key_widget.value_changed.connect(lambda new_key, i=item: self._on_key_changed(i, new_key))
+    self._tree.setItemWidget(item, 0, key_widget)
+
+    val_widget = self._make_value_widget(value)
+    val_widget.set_value(value)
+    val_widget.value_changed.connect(lambda val, i=item: self._on_value_changed(i, val))
+    self._tree.setItemWidget(item, 1, val_widget)
+
+  def _on_key_changed(self, item: QTreeWidgetItem, new_key: str):
+    old_key = item.data(0, Qt.ItemDataRole.UserRole)
+    if not new_key or new_key == old_key:
+      return
+    if new_key in self._data:
+      QMessageBox.warning(None, "Duplicate key", f"'{new_key}' already exists")
+      return
+    value = self._data.pop(old_key)
+    self._data[new_key] = value
+    item.setData(0, Qt.ItemDataRole.UserRole, new_key)
+    self.value_changed.emit(dict(self._data))
+
+  def _on_value_changed(self, item: QTreeWidgetItem, value: Any):
+    key = item.data(0, Qt.ItemDataRole.UserRole)
+    if key in self._data:
+      self._data[key] = value
+      self.value_changed.emit(dict(self._data))
+
+  def _on_add(self):
+    key, ok = QInputDialog.getText(None, "New entry", "Key:")
+    if not ok or not key:
+      return
+    if key in self._data:
+      QMessageBox.warning(None, "Duplicate key", f"'{key}' already exists")
+      return
+
+    if self._value_type_is_any:
+      default_val = self._pick_default_for_any()
+      if default_val is None:
+        return
+    else:
+      try:
+        default_val = self.value_type()
+      except TypeError:
+        default_val = ""
+
+    self._data[key] = default_val
+    self._add_row(key, default_val)
+    self.value_changed.emit(dict(self._data))
+
+  def _on_remove(self):
+    item = self._tree.currentItem()
+    if item is None:
+      return
+    key = item.data(0, Qt.ItemDataRole.UserRole)
+    self._data.pop(key, None)
+    self._tree.takeTopLevelItem(self._tree.indexOfTopLevelItem(item))
+    self.value_changed.emit(dict(self._data))
+
+  def get_value(self) -> dict:
+    return self._data
+
+  def set_value(self, value: dict, owner: Any | None = None):
+    super().set_value(value, owner)
+    self._data = value if value is not None else {}
+    self._reload()
+
+  def _reload(self):
+    self._tree.clear()
+    for key, val in self._data.items():
+      self._add_row(str(key), val)
+
+  def on_pre_destroy(self):
+    for i in range(self._tree.topLevelItemCount()):
+      item = self._tree.topLevelItem(i)
+      if item is None:
+        continue
+      for col in (0, 1):
+        widget = self._tree.itemWidget(item, col)
+        if isinstance(widget, BaseWidget):
+          widget.on_pre_destroy()
+    super().on_pre_destroy()
+
 class ProjectPartSelector(BaseWidget[QComboBox], Generic[TProjectPartBase]):
 
   def __init__(self, objs: Registry[TProjectPartBase], allow_none: bool = True, parent=None):
@@ -338,6 +475,7 @@ class WidgetFactory:
       str: lambda: StringWidget(),
       int: lambda: IntWidget(),
       list: lambda: ListWidget(self.list_item_type, self, self.default_factory),
+      dict: lambda: DictWidget(self.key_type, self.value_type, self),
       Asset: lambda: ProjectPartSelector(self.asset_mgr.assets),
       Entity: lambda: ProjectPartSelector(self.entity_mgr.entities),
       Scene: lambda: ProjectPartSelector(self.scene_mgr.scenes),
@@ -354,6 +492,10 @@ class WidgetFactory:
 
     if origin is list:
       self.list_item_type = get_args(type_var)[0]
+      type_var = origin
+    elif origin is dict:
+      self.key_type = get_args(type_var)[0]
+      self.value_type = get_args(type_var)[1]
       type_var = origin
 
     widget_factory = self.widget_map.get(type_var)
