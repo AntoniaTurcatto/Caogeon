@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from core.model import Asset, Entity, ProjectPartBase, PropertyChange, Scene
+from core.project_manager import ProjectManager
 from core.registers import Registry
 from editor.widgets.base_widgets import ProjectPartWidget, WidgetFactory
 
@@ -9,10 +10,10 @@ class GenericInspectorPanel(QWidget):
 
   property_edited = Signal(PropertyChange)
 
-  def __init__(self, assets: Registry[Asset], entities: Registry[Entity], scenes: Registry[Scene], parent: QWidget | None = None):
+  def __init__(self, proj_mgr: ProjectManager, parent: QWidget | None = None):
     super().__init__(parent)
     self._obj: ProjectPartBase | None = None
-    self.factory = WidgetFactory(assets=assets, entities=entities, scenes=scenes)
+    self.factory = WidgetFactory(asset_mgr=proj_mgr.asset_manager, entity_mgr=proj_mgr.entity_manager, scene_mgr=proj_mgr.scene_manager)
 
     main_layout = QVBoxLayout(self)
     main_layout.setContentsMargins(0, 0, 0, 0)

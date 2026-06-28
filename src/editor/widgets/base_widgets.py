@@ -1,15 +1,17 @@
 from abc import abstractmethod
 from ast import Slice
 from pathlib import Path
-import re
-from typing import Any, Callable, Generic, TypeVar, cast, get_args, get_origin
+from typing import Any, Callable, Generic, TypeVar, get_args, get_origin
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot
-from PySide6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLineEdit, QListWidget, QPushButton, QSpinBox, QTreeView, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QInputDialog, QLineEdit, QListWidget, QMessageBox, QPushButton, QSpinBox, QTreeView, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
+from core.asset_manager import AssetManager
+from core.entity_manager import EntityManager
 from core.managers import TProjectPartBase
 from core.model import Asset, Entity, InstancedEntity, ProjectPartBase, PropertyChange, Scene
 from core.registers import Registry
+from core.scene_manager import SceneManager
 
 
 TGenericWidget = TypeVar("TGenericWidget", bound=QWidget)
@@ -24,6 +26,11 @@ class BaseWidget(Generic[TGenericWidget], QWidget):
     layout.addWidget(self.widget)
 
     self.bind_signals_and_slots(self.widget)
+    self.destroyed.connect(self._on_qt_destroyed)
+
+  @Slot(QObject)
+  def _on_qt_destroyed(self, _: QObject):
+    self.on_pre_destroy()
 
   @abstractmethod
   def create_widget(self, parent=None) -> TGenericWidget: ...
@@ -34,8 +41,9 @@ class BaseWidget(Generic[TGenericWidget], QWidget):
   @abstractmethod
   def get_value(self) -> Any: ...
 
-  @abstractmethod
-  def set_value(self, value): ...
+  def set_value(self, value, owner: Any | None = None):
+    """For subclasses to override. Should set the value of the widget and owner to the given value (if not None)."""
+    self._owner = owner
 
   def on_pre_destroy(self):
     """To subclasses to override if they have to do something before the widget is destroyed"""
@@ -51,7 +59,8 @@ class StringWidget(BaseWidget[QLineEdit]):
   def get_value(self) -> str:
     return self.widget.text()
 
-  def set_value(self, value: str):
+  def set_value(self, value: str, owner: Any | None = None):
+    super().set_value(value, owner)
     self.widget.setText(value)
 
   def create_widget(self, parent=None) -> QLineEdit:
@@ -75,7 +84,8 @@ class IntWidget(BaseWidget[QSpinBox]):
   def get_value(self) -> int:
     return self.widget.value()
 
-  def set_value(self, value: int):
+  def set_value(self, value: int, owner: Any | None = None):
+    super().set_value(value, owner)
     self.widget.setValue(value)
 
   def create_widget(self, parent=None) -> QSpinBox:
@@ -89,8 +99,9 @@ class PathWidget(BaseWidget[QWidget]):
   def get_value(self) -> str:
     return self.path_edit.get_value()
 
-  def set_value(self, value):
-    if not isinstance(value, str):
+  def set_value(self, value: str | Path, owner: Any | None = None):
+    super().set_value(value, owner)
+    if isinstance(value, Path):
       value = str(value)
     self.path_edit.set_value(value)
 
@@ -136,8 +147,9 @@ class ProjectPartWidget(BaseWidget[QTreeWidget]):
   def create_widget(self, parent=None) -> QTreeWidget:
     return QTreeWidget(parent)
 
-  def set_value(self, obj: ProjectPartBase | None):
-    self.pre_destroy_items()
+  def set_value(self, obj: ProjectPartBase | None, owner: Any | None = None):
+    super().set_value(obj, owner)
+    self.on_pre_destroy()
     self.widget.clear()
     if obj is not None:
       self._obj = obj
@@ -151,13 +163,13 @@ class ProjectPartWidget(BaseWidget[QTreeWidget]):
       widget = self.factory.create_widget(value)
       if widget is None:
         continue
-      widget.set_value(getattr(self._obj, key))
+      widget.set_value(getattr(self._obj, key), self._obj)
       widget.value_changed.connect(
           lambda val, k=key: self._on_change(k, val)
       )
       self.widget.setItemWidget(item, 1, widget)
 
-  def pre_destroy_items(self):
+  def on_pre_destroy(self):
     for i in range(self.widget.topLevelItemCount()):
       item = self.widget.topLevelItem(i)
       if item is None:
@@ -195,6 +207,7 @@ class ListWidget(BaseWidget[QWidget]):
     layout.addWidget(self._list)
 
     btn_row = QHBoxLayout()
+    btn_row.setAlignment(Qt.AlignmentFlag.AlignRight)
     self._add_btn    = QPushButton("+")
     self._remove_btn = QPushButton("−")
     btn_row.addWidget(self._add_btn)
@@ -230,7 +243,8 @@ class ListWidget(BaseWidget[QWidget]):
   def get_value(self) -> list:
     return self.items
 
-  def set_value(self, value: list):
+  def set_value(self, value: list, owner: Any | None = None):
+    super().set_value(value, owner)
     self.items = value
     self._reload_list()
 
@@ -258,7 +272,14 @@ class ListWidget(BaseWidget[QWidget]):
     self.value_changed.emit(list(self.items))
 
   def create_default_item(self) -> Any | None:
+    factory = self.factory.default_factory_map.get(self.item_type)
+    if factory is None:
       return None
+    return factory(self._owner)
+
+  def on_pre_destroy(self):
+    self._part_widget.on_pre_destroy()
+    super().on_pre_destroy()
 
 class ProjectPartSelector(BaseWidget[QComboBox], Generic[TProjectPartBase]):
 
@@ -289,7 +310,8 @@ class ProjectPartSelector(BaseWidget[QComboBox], Generic[TProjectPartBase]):
   def get_value(self) -> TProjectPartBase | None:
     return self.widget.currentData()
 
-  def set_value(self, value: TProjectPartBase | None):
+  def set_value(self, value: TProjectPartBase | None, owner: Any | None = None):
+    super().set_value(value, owner)
     if value is None:
       self.widget.setCurrentIndex(0)
     else:
@@ -306,38 +328,64 @@ class ProjectPartSelector(BaseWidget[QComboBox], Generic[TProjectPartBase]):
     return QComboBox(parent)
 
 class WidgetFactory:
-  def __init__(self, assets: Registry[Asset], entities: Registry[Entity], scenes: Registry[Scene]) -> None:
-    self.assets = assets
-    self.entities = entities
-    self.scenes = scenes
+  def __init__(self, asset_mgr: AssetManager, entity_mgr: EntityManager, scene_mgr: SceneManager) -> None:
+    self.asset_mgr = asset_mgr
+    self.entity_mgr = entity_mgr
+    self.scene_mgr = scene_mgr
     self.list_item_type: type = str
+    self.default_factory: Callable[[], Any] | None = None
     self.widget_map: dict[type, Callable[[], BaseWidget]] = {
       str: lambda: StringWidget(),
       int: lambda: IntWidget(),
-      list: lambda: ListWidget(self.list_item_type, self),
-      Asset: lambda: ProjectPartSelector(self.assets),
-      Entity: lambda: ProjectPartSelector(self.entities),
-      Scene: lambda: ProjectPartSelector(self.scenes),
+      list: lambda: ListWidget(self.list_item_type, self, self.default_factory),
+      Asset: lambda: ProjectPartSelector(self.asset_mgr.assets),
+      Entity: lambda: ProjectPartSelector(self.entity_mgr.entities),
+      Scene: lambda: ProjectPartSelector(self.scene_mgr.scenes),
       InstancedEntity: lambda: ProjectPartWidget(self),
       Path: lambda: PathWidget(),
     }
+    self.default_factory_map: dict[type, Callable[[Any], Any]] = {
+      InstancedEntity: lambda owner: self._instanced_entity_factory(owner),
+    }
 
   def create_widget(self, type_var: type) -> BaseWidget | None:
-    origin = get_origin(type_var)
     type_var = self.resolve_optional(type_var)
+    origin = get_origin(type_var)
+
     if origin is list:
-      self.list_item_type = type_var
-      self.type_var = origin
+      self.list_item_type = get_args(type_var)[0]
+      type_var = origin
 
     widget_factory = self.widget_map.get(type_var)
     if widget_factory:
-      return widget_factory()
+      widget = widget_factory()
+      return widget
     return None
 
   def resolve_optional(self, type_var: type) -> type:
+    origin = get_origin(type_var)
+    if origin is None:
+      return type_var
     args = get_args(type_var)
     if type(None) in args:
-      non_none_args = [arg for arg in args if arg is not type(None)] # Any | None -> Any
-      if len(non_none_args) == 1:
-        return non_none_args[0]
+      non_none = [a for a in args if a is not type(None)]
+      if len(non_none) == 1:
+        return non_none[0]
     return type_var
+
+  def _instanced_entity_factory(self, owner: Any) -> InstancedEntity | None:
+    if not isinstance(owner, Scene):
+      return None
+    entities = self.entity_mgr.entities.as_list()
+    if not entities:
+      QMessageBox.warning(None, "0 entities found", "Create some before")
+      return None
+    names = [e.unique_name for e in entities]
+    chosen, ok = QInputDialog.getItem(None, "Choose entity", "Entity:", names, 0, False)
+    if not ok:
+      return None
+    entity = self.entity_mgr.entities.get(chosen)
+    if not entity:
+      QMessageBox.warning(None, "Entity not found", "The chosen entity does not exist")
+      return None
+    return self.scene_mgr.create_instanced_entity(owner, entity)

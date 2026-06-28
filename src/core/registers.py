@@ -21,6 +21,10 @@ class Registry(Generic[T]):
         self._dispatch_on_change()
         self._dispatch_on_add_remove()
 
+    def update_register(self, old_key: str, new_key: str) -> None:
+        self._data[new_key] = self._data.pop(old_key)
+        self._dispatch_on_change()
+
     def get(self, key: str) -> T:
         if key not in self._data:
             raise KeyError(f"'{key}' not found in registry")

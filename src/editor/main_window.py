@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         self.canvas.setStyleSheet("background-color: #2b2b2b; color: white;")
         splitter.addWidget(self.canvas)
 
-        self.inspector_panel = GenericInspectorPanel(self.proj_mgr.asset_manager.assets, self.proj_mgr.entity_manager.entities, self.proj_mgr.scene_manager.scenes)
+        self.inspector_panel = GenericInspectorPanel(self.proj_mgr)
         splitter.addWidget(self.inspector_panel)
 
     def init_proj_parts_panels(self, splitter: QSplitter):

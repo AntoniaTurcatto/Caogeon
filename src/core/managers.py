@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 import shutil
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar, get_origin
 
 from core.model import ProjectPartBase, PropertyChange
 from core.registers import Registry
@@ -71,6 +71,7 @@ class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
         self._update_property(change)
         if change.obj.unique_name != old_id:
             print(f"ID updated: {old_id} -> {change.obj.unique_name}")
+            self.registry().update_register(old_id, change.obj.unique_name)
             for listener in self.on_id_updated:
                 listener(change.obj, old_id)
 
@@ -79,6 +80,7 @@ class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
         if change.property_name not in property_types:
             raise ValueError(f"Property '{change.property_name}' is not a valid property for {change.obj.__class__.__name__}")
         expected_type = property_types[change.property_name]
+        expected_type = get_origin(expected_type) or expected_type
         if not isinstance(change.new_value, expected_type):
             raise ValueError(f"Property '{change.property_name}' must be of type {expected_type.__name__}")
 
