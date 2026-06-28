@@ -1,4 +1,5 @@
 from pathlib import Path
+import traceback
 from typing import Callable
 from PySide6.QtCore import (Slot, Qt)
 from pathlib import Path
@@ -10,7 +11,7 @@ from PySide6.QtWidgets import (QLabel,
 
 from core.managers import ProjectPaths
 from core.project_manager import ProjectManager
-from editor.dialogs.basic_dialogs import DialogManager
+from editor.dialogs.manager import DialogManager
 from editor.managers import EditorManager
 from editor.panels.panels import BrowserPanel
 from editor.panels.inspectors import GenericInspectorPanel
@@ -24,7 +25,7 @@ class MainWindow(QMainWindow):
         self.proj_mgr = project_mgr
         self.setMinimumSize(800, 600)
         self.init_ui()
-        self.editor_mgr = EditorManager(self.proj_mgr, self.inspector_panel, self.asset_panel, self.scene_panel, self.entity_panel)
+        self.editor_mgr = EditorManager(self.proj_mgr, self.dialogs_mgr, self.inspector_panel, self.asset_panel, self.scene_panel, self.entity_panel)
 
     def init_ui(self):
         self.setMenuBar(Menu(self.proj_mgr, self.dialogs_mgr))
@@ -141,3 +142,4 @@ class Menu(QMenuBar):
         self.proj_mgr.import_asset(self.dialogs_mgr.path_file_dialog.get_input())
       except Exception as e:
         self.dialogs_mgr.error_dialog.show("Failed to import asset: " + str(e))
+        traceback.print_exc()

@@ -27,6 +27,7 @@ class EntityManager(ProjectPartsManager):
             self.serializer.save_to_file(entity, filepath)
 
     def create(self, asset: Asset) -> Entity | None:
+        """Creates a new entity from the given asset, adds it to the registry, and returns it."""
         if self.project_paths_state.project_paths is None:
           return None
         unique_name = self.registry().first_valid_name("blank entity")
@@ -39,6 +40,7 @@ class EntityManager(ProjectPartsManager):
             variables={},
             hooks={}
         )
+        self.registry().register(entity.unique_name, entity)
         return entity
 
     def _folders(self, project_paths: ProjectPaths) -> list[Path]:

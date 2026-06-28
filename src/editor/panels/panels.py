@@ -10,8 +10,10 @@ class BrowserListWidget(QListWidget):
 
 class BrowserPanel(QWidget):
 
+  # passes label of its selected item
   selected = Signal(str)
-  removed = Signal(str)
+  create_opc_clicked = Signal()
+  remove_opc_clicked = Signal()
 
   def __init__(self, parent=None, title=""):
     super().__init__(parent)
@@ -41,18 +43,15 @@ class BrowserPanel(QWidget):
   def _on_context_menu_requested(self, pos):
     print("context menu requested")
     menu = QMenu(self)
-    menu.addAction("Remove", self.remove_item)
+    menu.addAction("Create", self.create_opc_clicked.emit)
+    menu.addAction("Remove", self.remove_opc_clicked.emit)
     menu.exec_(self.list_widget.mapToGlobal(pos))
 
   def load_assets(self, values: list[str]):
     self.list_widget.clear()
     self.list_widget.addItems(values)
 
-  def remove_item(self, row: int):
-    item = self.list_widget.item(row)
-    if item:
-        self.removed.emit(item.text())
-
-  def _on_item_changed(self, current_text: str):
-    if current_text:
-        self.selected.emit(current_text)
+  @Slot(str)
+  def _on_item_changed(self, text: str):
+    if text != "":
+      self.selected.emit(text)

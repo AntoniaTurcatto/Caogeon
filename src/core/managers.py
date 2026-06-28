@@ -55,11 +55,6 @@ class Manager(ABC):
     def save(self, project_paths: ProjectPaths | None = None):
         pass
 
-class CanCreateBlank(ABC, Generic[TProjectPartBase]):
-    @abstractmethod
-    def create_blank(self) -> TProjectPartBase:
-        pass
-
 class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
     def __init__(self, project_paths_state: ProjectPathsState, serializer: DataSerializer) -> None:
         super().__init__(serializer)
@@ -87,7 +82,7 @@ class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
         if not isinstance(change.new_value, expected_type):
             raise ValueError(f"Property '{change.property_name}' must be of type {expected_type.__name__}")
 
-        setattr(change.obj, change.property_name, expected_type(change.new_value))
+        setattr(change.obj, change.property_name, change.new_value)
 
     def get_as_dict(self, unique_name: str) -> dict:
         obj = self.get(unique_name)

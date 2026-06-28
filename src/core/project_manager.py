@@ -57,7 +57,7 @@ class ProjectManager(Manager):
     def _create_empty_project(self, name: str):
         if self.paths_state.project_paths is None:
             raise ValueError("Project paths not set")
-        empty_scene = self.scene_manager.create_blank()
+        empty_scene = self.scene_manager.create()
         self.project = Project(name=name,
           engine_version="0.1", window_specs=WindowSpecs(title=name, height=600, width=800, target_fps=30), initial_scene=empty_scene)
 

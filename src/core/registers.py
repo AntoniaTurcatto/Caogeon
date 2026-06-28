@@ -6,6 +6,7 @@ class Registry(Generic[T]):
     def __init__(self) -> None:
         self._data: dict[str, T] = {}
         self.on_change: list[Callable] = []
+        self.on_add_remove: list[Callable] = []
 
     def __iter__(self):
         return iter(self._data.values())
@@ -13,10 +14,12 @@ class Registry(Generic[T]):
     def register(self, key: str, obj: T) -> None:
         self._data[key] = obj
         self._dispatch_on_change()
+        self._dispatch_on_add_remove()
 
     def unregister(self, key: str):
         self._data.pop(key)
         self._dispatch_on_change()
+        self._dispatch_on_add_remove()
 
     def get(self, key: str) -> T:
         if key not in self._data:
@@ -39,6 +42,7 @@ class Registry(Generic[T]):
         self._data.clear()
         self._data.update(other._data)
         self._dispatch_on_change()
+        self._dispatch_on_add_remove()
 
     def as_list(self) -> list[T]:
         return list(self._data.values())
@@ -55,4 +59,8 @@ class Registry(Generic[T]):
 
     def _dispatch_on_change(self):
         for callback in self.on_change:
+            callback()
+
+    def _dispatch_on_add_remove(self):
+        for callback in self.on_add_remove:
             callback()

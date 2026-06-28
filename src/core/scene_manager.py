@@ -6,9 +6,9 @@ from core.model_parsers import InstancedEntityParser, SceneParser
 from core.registers import Registry
 from core.serializers import DataSerializer, SerializeStrategy
 from utils.files import PathUtils
-from .managers import CanCreateBlank, ProjectPartsManager, ProjectPaths, ProjectPathsState
+from .managers import ProjectPartsManager, ProjectPaths, ProjectPathsState
 
-class SceneManager(ProjectPartsManager, CanCreateBlank):
+class SceneManager(ProjectPartsManager):
     def __init__(self,
         project_paths_state: ProjectPathsState,
         serializer_strategy: SerializeStrategy,
@@ -31,7 +31,8 @@ class SceneManager(ProjectPartsManager, CanCreateBlank):
             filepath = project_paths.scenes_dir / f"{scene.unique_name}.json"
             self.serializer.save_to_file(scene, filepath)
 
-    def create_blank(self) -> Scene:
+    def create(self) -> Scene:
+        """Creates a new empty scene, adds it to the registry, and returns it."""
         if self.project_paths_state.project_paths is None:
             return Scene(unique_name="empty scene", background=None, entities=[], script_path=Path())
         path = self.project_paths_state.project_paths.scenes_script_dir

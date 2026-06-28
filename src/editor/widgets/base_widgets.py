@@ -1,9 +1,10 @@
 from abc import abstractmethod
+from ast import Slice
 from pathlib import Path
 import re
 from typing import Any, Callable, Generic, TypeVar, cast, get_args, get_origin
 
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLineEdit, QListWidget, QPushButton, QSpinBox, QTreeView, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from core.managers import TProjectPartBase
@@ -35,6 +36,10 @@ class BaseWidget(Generic[TGenericWidget], QWidget):
 
   @abstractmethod
   def set_value(self, value): ...
+
+  def on_pre_destroy(self):
+    """To subclasses to override if they have to do something before the widget is destroyed"""
+    pass
 
 class StringWidget(BaseWidget[QLineEdit]):
   def __init__(self, parent=None) :
@@ -132,6 +137,7 @@ class ProjectPartWidget(BaseWidget[QTreeWidget]):
     return QTreeWidget(parent)
 
   def set_value(self, obj: ProjectPartBase | None):
+    self.pre_destroy_items()
     self.widget.clear()
     if obj is not None:
       self._obj = obj
@@ -150,6 +156,16 @@ class ProjectPartWidget(BaseWidget[QTreeWidget]):
           lambda val, k=key: self._on_change(k, val)
       )
       self.widget.setItemWidget(item, 1, widget)
+
+  def pre_destroy_items(self):
+    for i in range(self.widget.topLevelItemCount()):
+      item = self.widget.topLevelItem(i)
+      if item is None:
+        continue
+      widget = self.widget.itemWidget(item, 1)
+
+      if isinstance(widget, BaseWidget):
+          widget.on_pre_destroy()
 
   def bind_signals_and_slots(self, widget: QTreeWidget):
     self.property_edited.connect(self.value_changed.emit)
@@ -266,6 +282,10 @@ class ProjectPartSelector(BaseWidget[QComboBox], Generic[TProjectPartBase]):
     if current_item is not None:
       self.widget.setCurrentText(current_item.unique_name)
 
+  def on_pre_destroy(self):
+    print(f"Object destroyed: {self}")
+    self.objs.on_change.remove(self.reload_and_restore)
+
   def get_value(self) -> TProjectPartBase | None:
     return self.widget.currentData()
 
@@ -307,6 +327,7 @@ class WidgetFactory:
     type_var = self.resolve_optional(type_var)
     if origin is list:
       self.list_item_type = type_var
+      self.type_var = origin
 
     widget_factory = self.widget_map.get(type_var)
     if widget_factory:

@@ -18,9 +18,9 @@ class BasicDialog(QDialog):
   def __init__(self, width: int = 400, height: int = 100, parent: QWidget | None = None):
     super().__init__(parent)
     self.setModal(True)
+    self.caption_text_if_none = ""
     self.caption_lb = QLabel()
     self.caption_lb.setWordWrap(True)
-
     self.edit_layout = QHBoxLayout()
     self.edit_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.edit_layout.addWidget(self.caption_lb)
@@ -92,9 +92,9 @@ class BasicDialog(QDialog):
     except RuntimeError:
       pass
 
-  def show(self, caption: str, on_confirm: Callable[[], None] | None = None):
+  def show(self, caption: str = "", on_confirm: Callable[[], None] | None = None):
     self._clear()
-    self.caption_lb.setText(caption)
+    self.caption_lb.setText(caption if caption != "" else self.caption_text_if_none)
     self.disconnect_slot(self.on_confirm)
     if on_confirm is not None:
       self.on_confirm.connect(on_confirm)
@@ -180,11 +180,3 @@ class ErrorDialog(BasicDialog):
     super().__init__(400, 100, parent=parent)
     self.setVisible(False)
     self.setWindowTitle("Error")
-
-class DialogManager:
-  def __init__(self):
-    self.path_file_dialog = PathDialog(validator=PathValidator())
-    self.path_folder_dialog = PathDialog(validator=PathFolderValidator())
-    self.error_dialog = ErrorDialog()
-    self.input_dialog = InputDialog()
-    self.confirm_dialog = ConfirmDialog()

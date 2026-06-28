@@ -231,7 +231,7 @@ def test_scene_load_preserves_external_reference(scene_manager, scene1, tmp_proj
 
 def test_scene_create_blank(scene_manager, tmp_project):
     scene_manager.new(tmp_project)
-    scene = scene_manager.create_blank()
+    scene = scene_manager.create()
     assert scene.unique_name in [s.unique_name for s in scene_manager.scenes.all()]
     assert scene.script_path.exists()
 
