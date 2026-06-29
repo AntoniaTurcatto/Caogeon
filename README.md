@@ -100,7 +100,7 @@ Example: `ctx.state["health"] = int(arg)`
 ```
 
 ### project_files/scenes/
-scenes scripts are inside project_file/scenes/scripts
+scenes scripts are inside project_file/scenes/scripts. Background will be set to "" if none are set
 ```json
 {
   "unique_name": "level01",
