@@ -5,6 +5,7 @@ from typing import Any, Callable, Generic, TypeVar, get_origin
 
 from core.model import ProjectPartBase, PropertyChange
 from core.registers import Registry
+from utils.files import PathUtils
 from utils.types import TypesHelper
 
 from .serializers import DataSerializer
@@ -28,13 +29,18 @@ class ProjectPathsState:
         self.project_paths: ProjectPaths | None = None
 
 class Manager(ABC):
-    def __init__(self, serializer: DataSerializer) -> None:
+    def __init__(self, project_paths_state: ProjectPathsState, serializer: DataSerializer) -> None:
         self.serializer = serializer
+        self.project_paths_state = project_paths_state
 
     def clear_folders(self, folders: list[Path]):
         for folder in folders:
             if folder.exists():
                 shutil.rmtree(folder)
+
+    def clear_files(self, folders: list[Path]):
+      for folder in folders:
+        PathUtils.remove_files_from_dir(folder)
 
     def create_folder(self, folder:Path):
         folder.mkdir(parents=True, exist_ok=True)
@@ -49,17 +55,22 @@ class Manager(ABC):
         pass
 
     @abstractmethod
+    def _folder_with_registered_type_files(self, project_paths: ProjectPaths) -> list[Path]:
+      pass
+
+    @abstractmethod
     def load(self, project_paths: ProjectPaths):
         pass
 
     @abstractmethod
     def save(self, project_paths: ProjectPaths | None = None):
-        pass
+        proj_path = self.project_paths_state.project_paths
+        if proj_path is not None:
+          self.clear_files(self._folder_with_registered_type_files(proj_path))
 
 class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
     def __init__(self, project_paths_state: ProjectPathsState, serializer: DataSerializer) -> None:
-        super().__init__(serializer)
-        self.project_paths_state = project_paths_state
+        super().__init__(project_paths_state, serializer)
         # List of listeners for when an ID is updated, called with the updated object and old unique name
         self.on_id_updated: list[Callable[[ProjectPartBase, str], None]] = []
 
@@ -86,12 +97,6 @@ class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
 
         setattr(change.obj, change.property_name, change.new_value)
 
-    def get_as_dict(self, unique_name: str) -> dict:
-        obj = self.get(unique_name)
-        if obj is None:
-            return {}
-        return self.serializer.parser.to_dict(obj)
-
     def add(self, obj: TProjectPartBase):
         obj.unique_name = self.registry().first_valid_name(obj.unique_name)
         self.registry().register(obj.unique_name, obj)
@@ -100,7 +105,15 @@ class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
         return self.registry().try_get(unique_name)
 
     def remove(self, unique_name: str):
-        self.registry().unregister(unique_name)
+      obj = self.get(unique_name)
+      if obj is not None:
+        for path in self.get_obj_filepaths(obj):
+          path.unlink(missing_ok=True)
+      self.registry().unregister(unique_name)
+
+    @abstractmethod
+    def get_obj_filepaths(self, obj: TProjectPartBase) -> list[Path]:
+      pass
 
     @abstractmethod
     def registry(self) -> Registry[TProjectPartBase]:

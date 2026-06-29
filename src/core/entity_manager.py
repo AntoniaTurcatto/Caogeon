@@ -21,6 +21,7 @@ class EntityManager(ProjectPartsManager):
         self.entities.replace_all(aux_entities)
 
     def save(self, project_paths: ProjectPaths):
+        super().save(project_paths)
         project_paths.entities_dir.mkdir(parents=True, exist_ok=True)
         for entity in self.entities.all():
             filepath = project_paths.entities_dir / f"{entity.unique_name}.json"
@@ -46,5 +47,11 @@ class EntityManager(ProjectPartsManager):
     def _folders(self, project_paths: ProjectPaths) -> list[Path]:
         return [project_paths.entities_dir, project_paths.entities_script_dir]
 
+    def _folder_with_registered_type_files(self, project_paths: ProjectPaths) -> list[Path]:
+        return [project_paths.entities_dir]
+
     def registry(self) -> Registry[Entity]:
         return self.entities
+
+    def get_obj_filepaths(self, obj: Entity) -> list[Path]:
+        return [obj.script_path]

@@ -26,6 +26,7 @@ class SceneManager(ProjectPartsManager):
         self.scenes.replace_all(aux_scenes)
 
     def save(self, project_paths: ProjectPaths) -> None:
+        super().save(project_paths)
         project_paths.scenes_dir.mkdir(parents=True, exist_ok=True)
         for scene in self.scenes.all():
             filepath = project_paths.scenes_dir / f"{scene.unique_name}.json"
@@ -48,5 +49,11 @@ class SceneManager(ProjectPartsManager):
     def _folders(self, project_paths: ProjectPaths) -> list[Path]:
         return [project_paths.scenes_dir, project_paths.scenes_script_dir]
 
+    def _folder_with_registered_type_files(self, project_paths: ProjectPaths) -> list[Path]:
+        return [project_paths.scenes_dir]
+
     def registry(self) -> Registry[Scene]:
         return self.scenes
+
+    def get_obj_filepaths(self, obj: Scene) -> list[Path]:
+        return [obj.script_path]
