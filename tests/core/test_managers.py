@@ -33,8 +33,10 @@ def serializer():
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def asset_manager(state, serializer):
-    return AssetManager(state, serializer)
+def asset_manager(state, serializer, tmp_project):
+    mgr = AssetManager(state, serializer)
+    mgr.new(tmp_project)
+    return mgr
 
 @pytest.fixture
 def asset1(tmp_project):
@@ -60,8 +62,10 @@ def asset_manager_with_assets(asset_manager, asset1, asset2, asset3):
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def entity_manager(state, serializer, asset_manager_with_assets):
-    return EntityManager(state, serializer, asset_manager_with_assets.assets)
+def entity_manager(state, serializer, asset_manager_with_assets, tmp_project):
+    mgr = EntityManager(state, serializer, asset_manager_with_assets.assets)
+    mgr.new(tmp_project)# cria entities_dir
+    return mgr
 
 @pytest.fixture
 def entity1(tmp_project, asset1):
@@ -89,8 +93,10 @@ def entity2(tmp_project, asset1):
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def scene_manager(state, serializer, asset_manager, entity_manager):
-    return SceneManager(state, serializer, asset_manager.assets, entity_manager.entities)
+def scene_manager(state, serializer, asset_manager, entity_manager, tmp_project):
+    mgr = SceneManager(state, serializer, asset_manager.assets, entity_manager.entities)
+    mgr.new(tmp_project)   # cria scenes_dir
+    return mgr
 
 @pytest.fixture
 def scene1(tmp_project):
@@ -247,16 +253,14 @@ def test_scene_roundtrip(scene_manager, scene1, tmp_project, state, serializer, 
 # AssetManager — import_asset
 # ---------------------------------------------------------------------------
 
-def test_import_asset(asset_manager, tmp_project):
-    fake_file = tmp_project.assets_files_dir / "sprite.png"
-    fake_file.parent.mkdir(parents=True, exist_ok=True)
+def test_import_asset(asset_manager, tmp_path):
+    fake_file = tmp_path / "sprite.png"
     fake_file.touch()
     asset_manager.import_asset(fake_file)
     assert asset_manager.assets.try_get("sprite") is not None
 
-def test_import_asset_uses_stem_as_name(asset_manager, tmp_project):
-    fake_file = tmp_project.assets_files_dir / "my_sprite.png"
-    fake_file.parent.mkdir(parents=True, exist_ok=True)
+def test_import_asset_uses_stem_as_name(asset_manager, tmp_path):
+    fake_file = tmp_path / "my_sprite.png"
     fake_file.touch()
     asset_manager.import_asset(fake_file)
     assert asset_manager.assets.try_get("my_sprite") is not None
