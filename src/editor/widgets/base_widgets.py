@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from ast import Slice
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Generic, TypeVar, get_args, get_origin
 
@@ -91,10 +92,15 @@ class IntWidget(BaseWidget[QSpinBox]):
   def create_widget(self, parent=None) -> QSpinBox:
     return QSpinBox(parent)
 
+class SearchMode(Enum):
+  FILE = "FILE",
+  FOLDER = "FOLDER",
+
 class PathWidget(BaseWidget[QWidget]):
 
   def __init__(self, parent=None):
     super().__init__(parent)
+    self.search_mode: SearchMode = SearchMode.FOLDER
 
   def get_value(self) -> str:
     return self.path_edit.get_value()
@@ -110,7 +116,10 @@ class PathWidget(BaseWidget[QWidget]):
     self.browse_button.clicked.connect(self.browse)
 
   def browse(self):
-    path = QFileDialog.getExistingDirectory(self, "Select Directory")
+    if self.search_mode is SearchMode.FOLDER:
+      path = QFileDialog.getExistingDirectory(self, "Select Directory")
+    else:
+      path, _ = QFileDialog.getOpenFileName(self, "Select file")
     if path:
       self.path_edit.set_value(path)
 

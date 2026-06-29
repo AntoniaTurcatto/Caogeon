@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from typing import Callable, Generic, cast
 
@@ -6,7 +7,7 @@ from PySide6.QtGui import QValidator
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
 from editor.validators import PathFolderValidator, PathValidator
-from editor.widgets.base_widgets import BaseWidget, PathWidget, StringWidget, TGenericWidget
+from editor.widgets.base_widgets import BaseWidget, PathWidget, SearchMode, StringWidget, TGenericWidget
 
 class BasicDialog(QDialog):
   """
@@ -161,13 +162,16 @@ class InputDialog(ConfirmDialog):
     self.get_editor().get_line_edit().setFocus()
 
 class PathDialog(InputDialog):
-  def __init__(self, parent: QWidget | None = None, validator: QValidator | None = None):
-    super().__init__(400, 100, parent=parent, validator=validator)
+  def __init__(self, parent: QWidget | None = None, search_mode: SearchMode = SearchMode.FOLDER):
+    self.search_mode = search_mode
+    super().__init__(400, 100, parent=parent, validator=PathFolderValidator() if search_mode is SearchMode.FOLDER else PathValidator())
     self.setWindowTitle("Select Path")
     self.setVisible(False)
 
   def create_widget(self, parent: QWidget | None = None) -> QWidget:
-    return PathWidget(parent)
+    path_widget = PathWidget(parent)
+    path_widget.search_mode = self.search_mode
+    return path_widget
 
   def get_editor(self) -> StringWidget:
     return cast(PathWidget, self.get_widget()).get_editor()
