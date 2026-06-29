@@ -43,7 +43,6 @@ class MainWindow(QMainWindow):
 
         self.canvas = QLabel("Scene Canvas Aqui")
         self.canvas.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.canvas.setStyleSheet("background-color: #2b2b2b; color: white;")
         splitter.addWidget(self.canvas)
 
         self.inspector_panel = GenericInspectorPanel(self.proj_mgr)
@@ -52,7 +51,7 @@ class MainWindow(QMainWindow):
     def init_proj_parts_panels(self, splitter: QSplitter):
         self.scene_panel = BrowserPanel(title="Scene")
         self.entity_panel = BrowserPanel(title="Entities")
-        self.asset_panel = BrowserPanel(title="Assets")
+        self.asset_panel = BrowserPanel(title="Assets", can_add=False)
         splitter.addWidget(self.asset_panel)
         splitter.addWidget(self.scene_panel)
         splitter.addWidget(self.entity_panel)

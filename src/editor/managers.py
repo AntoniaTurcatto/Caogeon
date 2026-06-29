@@ -45,7 +45,6 @@ class EditorManager:
 
   def bind_creation_requested(self):
     """Bind the creation request signal of browsers"""
-    self.asset_panel.create_opc_clicked.connect(self.asset_creation_requested)
     self.scene_panel.create_opc_clicked.connect(self.scene_creation_requested)
     self.entity_panel.create_opc_clicked.connect(self.entity_creation_requested)
 
@@ -108,14 +107,9 @@ class EditorManager:
       self.inspector.inspect(entity)
 
   @Slot()
-  def asset_creation_requested(self):
-    """Create a dialog to create an asset."""
-    pass
-
-  @Slot()
   def scene_creation_requested(self):
-    """Create a dialog to create a scene."""
-    pass
+    """Create a blank scene."""
+    self.proj_manager.scene_manager.create()
 
   @Slot()
   def entity_creation_requested(self):
@@ -123,20 +117,20 @@ class EditorManager:
     self.dialogs_manager.entity_creation_dialog.show("Create Entity")
 
 
-  @Slot()
-  def asset_removal_requested(self):
-    """Create a dialog to remove an asset."""
-    pass
+  @Slot(str)
+  def asset_removal_requested(self, asset_id):
+    """Remove an asset."""
+    self.proj_manager.asset_manager.remove(asset_id)
 
-  @Slot()
-  def scene_removal_requested(self):
-    """Create a dialog to remove a scene."""
-    pass
+  @Slot(str)
+  def scene_removal_requested(self, scene_id):
+    """Remove a scene."""
+    self.proj_manager.scene_manager.remove(scene_id)
 
-  @Slot()
-  def entity_removal_requested(self):
-    """Create a dialog to remove an entity."""
-    pass
+  @Slot(str)
+  def entity_removal_requested(self, entity_id):
+    """Remove an entity."""
+    self.proj_manager.entity_manager.remove(entity_id)
 
   @Slot(PropertyChange)
   def update_property(self, change: PropertyChange):

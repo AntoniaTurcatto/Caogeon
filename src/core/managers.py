@@ -5,6 +5,7 @@ from typing import Any, Callable, Generic, TypeVar, get_origin
 
 from core.model import ProjectPartBase, PropertyChange
 from core.registers import Registry
+from utils.types import TypesHelper
 
 from .serializers import DataSerializer
 
@@ -80,8 +81,7 @@ class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
         if change.property_name not in property_types:
             raise ValueError(f"Property '{change.property_name}' is not a valid property for {change.obj.__class__.__name__}")
         expected_type = property_types[change.property_name]
-        expected_type = get_origin(expected_type) or expected_type
-        if not isinstance(change.new_value, expected_type):
+        if not isinstance(change.new_value, TypesHelper.turn_opts_into_tuple(expected_type)):
             raise ValueError(f"Property '{change.property_name}' must be of type {expected_type.__name__}")
 
         setattr(change.obj, change.property_name, change.new_value)
