@@ -1,4 +1,6 @@
 from pathlib import Path
+import traceback
+from typing import Callable
 from PySide6.QtCore import (Slot, Qt)
 from pathlib import Path
 
@@ -9,10 +11,11 @@ from PySide6.QtWidgets import (QLabel,
 
 from core.managers import ProjectPaths
 from core.project_manager import ProjectManager
-from editor.dialogs.basic_dialogs import DialogManager
+from editor.dialogs.manager import DialogManager
 from editor.managers import EditorManager
 from editor.panels.panels import BrowserPanel
 from editor.panels.inspectors import GenericInspectorPanel
+from utils.files import PathUtils
 
 class MainWindow(QMainWindow):
     def __init__(self, project_mgr: ProjectManager, dialogs_mgr: DialogManager, parent = None):
@@ -22,7 +25,7 @@ class MainWindow(QMainWindow):
         self.proj_mgr = project_mgr
         self.setMinimumSize(800, 600)
         self.init_ui()
-        self.editor_mgr = EditorManager(self.proj_mgr, self.inspector_panel, self.asset_panel, self.scene_panel, self.entity_panel)
+        self.editor_mgr = EditorManager(self.proj_mgr, self.dialogs_mgr, self.inspector_panel, self.asset_panel, self.scene_panel, self.entity_panel)
 
     def init_ui(self):
         self.setMenuBar(Menu(self.proj_mgr, self.dialogs_mgr))
@@ -40,16 +43,15 @@ class MainWindow(QMainWindow):
 
         self.canvas = QLabel("Scene Canvas Aqui")
         self.canvas.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.canvas.setStyleSheet("background-color: #2b2b2b; color: white;")
         splitter.addWidget(self.canvas)
 
-        self.inspector_panel = GenericInspectorPanel()
+        self.inspector_panel = GenericInspectorPanel(self.proj_mgr)
         splitter.addWidget(self.inspector_panel)
 
     def init_proj_parts_panels(self, splitter: QSplitter):
         self.scene_panel = BrowserPanel(title="Scene")
         self.entity_panel = BrowserPanel(title="Entities")
-        self.asset_panel = BrowserPanel(title="Assets")
+        self.asset_panel = BrowserPanel(title="Assets", can_add=False)
         splitter.addWidget(self.asset_panel)
         splitter.addWidget(self.scene_panel)
         splitter.addWidget(self.entity_panel)
@@ -72,12 +74,19 @@ class Menu(QMenuBar):
 
     @Slot()
     def new_project(self):
-      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_new_project)
+      self.dialogs_mgr.path_folder_dialog.show("Path", self.on_confirm_new_project)
 
     @Slot()
     def on_confirm_new_project(self):
-      self.new_proj_path = self.dialogs_mgr.path_dialog.get_input()
-      self.new_project_name()
+      self.new_proj_path = self.dialogs_mgr.path_folder_dialog.get_input()
+      self.confirm_override_if_aplicable(self.new_proj_path, self.new_project_name)
+
+    def confirm_override_if_aplicable(self, path: Path, on_confirm: Callable[[], None]):
+      if not PathUtils.risk_of_overwrite(path):
+        on_confirm()
+        return
+
+      self.dialogs_mgr.confirm_dialog.show(f"Path {path} already exists. Override?", on_confirm)
 
     def new_project_name(self):
       self.dialogs_mgr.input_dialog.show("Name", self.on_confirm_new_project_name)
@@ -94,22 +103,22 @@ class Menu(QMenuBar):
 
     @Slot()
     def load_project(self):
-      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_load_project)
+      self.dialogs_mgr.path_folder_dialog.show("Path", self.on_confirm_load_project)
 
     @Slot()
     def on_confirm_load_project(self):
       try:
-        self.proj_mgr.load(ProjectPaths(self.dialogs_mgr.path_dialog.get_input()))
+        self.proj_mgr.load(ProjectPaths(self.dialogs_mgr.path_folder_dialog.get_input()))
       except Exception as e:
         self.dialogs_mgr.error_dialog.show("Failed to open project: " + str(e))
 
     @Slot()
     def save_project_at(self):
-      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_save_project_at)
+      self.dialogs_mgr.path_folder_dialog.show("Path", self.on_confirm_save_project_at)
 
     @Slot()
     def on_confirm_save_project_at(self):
-      save_as = self.dialogs_mgr.path_dialog.get_input()
+      save_as = self.dialogs_mgr.path_folder_dialog.get_input()
       try:
         self.proj_mgr.save(ProjectPaths(save_as))
       except Exception as e:
@@ -124,11 +133,12 @@ class Menu(QMenuBar):
 
     @Slot()
     def import_asset(self):
-      self.dialogs_mgr.path_dialog.show("Path", self.on_confirm_import_asset)
+      self.dialogs_mgr.path_file_dialog.show("Path", self.on_confirm_import_asset)
 
     @Slot()
     def on_confirm_import_asset(self):
       try:
-        self.proj_mgr.import_asset(self.dialogs_mgr.path_dialog.get_input())
+        self.proj_mgr.import_asset(self.dialogs_mgr.path_file_dialog.get_input())
       except Exception as e:
         self.dialogs_mgr.error_dialog.show("Failed to import asset: " + str(e))
+        traceback.print_exc()

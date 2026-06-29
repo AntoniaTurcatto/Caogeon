@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 import shutil
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar, get_origin
 
-from core.model import ProjectPartBase
+from core.model import ProjectPartBase, PropertyChange
 from core.registers import Registry
+from utils.files import PathUtils
+from utils.types import TypesHelper
 
 from .serializers import DataSerializer
 
@@ -21,14 +23,24 @@ class ProjectPaths:
         self.entities_script_dir = Path(self.root / "scripts")
         self.project_file = Path(self.root / "project.json")
 
+class ProjectPathsState:
+    """Holds the state of project paths, to be passed accross managers."""
+    def __init__(self) -> None:
+        self.project_paths: ProjectPaths | None = None
+
 class Manager(ABC):
-    def __init__(self, serializer: DataSerializer) -> None:
+    def __init__(self, project_paths_state: ProjectPathsState, serializer: DataSerializer) -> None:
         self.serializer = serializer
+        self.project_paths_state = project_paths_state
 
     def clear_folders(self, folders: list[Path]):
         for folder in folders:
             if folder.exists():
                 shutil.rmtree(folder)
+
+    def clear_files(self, folders: list[Path]):
+      for folder in folders:
+        PathUtils.remove_files_from_dir(folder)
 
     def create_folder(self, folder:Path):
         folder.mkdir(parents=True, exist_ok=True)
@@ -43,48 +55,47 @@ class Manager(ABC):
         pass
 
     @abstractmethod
+    def _folder_with_registered_type_files(self, project_paths: ProjectPaths) -> list[Path]:
+      pass
+
+    @abstractmethod
     def load(self, project_paths: ProjectPaths):
         pass
 
     @abstractmethod
     def save(self, project_paths: ProjectPaths | None = None):
-        pass
+        proj_path = self.project_paths_state.project_paths
+        if proj_path is not None:
+          self.clear_files(self._folder_with_registered_type_files(proj_path))
 
 class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
-    def __init__(self, serializer: DataSerializer) -> None:
-        super().__init__(serializer)
+    def __init__(self, project_paths_state: ProjectPathsState, serializer: DataSerializer) -> None:
+        super().__init__(project_paths_state, serializer)
         # List of listeners for when an ID is updated, called with the updated object and old unique name
-        self.on_id_updated: list[Callable[[TProjectPartBase, str], None]] = []
+        self.on_id_updated: list[Callable[[ProjectPartBase, str], None]] = []
 
-    def add_listener_id_updated(self, listener: Callable[[TProjectPartBase, str], None]):
+    def add_listener_id_updated(self, listener: Callable[[ProjectPartBase, str], None]):
         self.on_id_updated.append(listener)
 
-    def update_property(self, unique_name: str, property_name: str, new_value: str):
-        obj = self.get(unique_name)
-        if obj is None:
-            return
-        old_id = obj.unique_name
-        self._update_property(obj, property_name, new_value)
-        if property_name == obj.UNIQUE_NAME_VAR:
-            print(f"ID updated: {old_id} -> {new_value}")
+    def update_property(self, change: PropertyChange):
+        old_obj = change.obj
+        old_id = old_obj.unique_name
+        self._update_property(change)
+        if change.obj.unique_name != old_id:
+            print(f"ID updated: {old_id} -> {change.obj.unique_name}")
+            self.registry().update_register(old_id, change.obj.unique_name)
             for listener in self.on_id_updated:
-                listener(obj, old_id)
+                listener(change.obj, old_id)
 
-    def _update_property(self, obj: TProjectPartBase, property_name: str, new_value: str):
-        property_types = obj.property_types()
-        if property_name not in property_types:
-            raise ValueError(f"Property '{property_name}' is not a valid property for {obj.__class__.__name__}")
-        expected_type = property_types[property_name]
-        if not isinstance(new_value, expected_type):
-            raise ValueError(f"Property '{property_name}' must be of type {expected_type.__name__}")
+    def _update_property(self, change: PropertyChange):
+        property_types = change.obj.property_types()
+        if change.property_name not in property_types:
+            raise ValueError(f"Property '{change.property_name}' is not a valid property for {change.obj.__class__.__name__}")
+        expected_type = property_types[change.property_name]
+        if not isinstance(change.new_value, TypesHelper.turn_opts_into_tuple(expected_type)):
+            raise ValueError(f"Property '{change.property_name}' must be of type {expected_type.__name__}")
 
-        setattr(obj, property_name, expected_type(new_value))
-
-    def get_as_dict(self, unique_name: str) -> dict:
-        obj = self.get(unique_name)
-        if obj is None:
-            return {}
-        return self.serializer.parser.to_dict(obj)
+        setattr(change.obj, change.property_name, change.new_value)
 
     def add(self, obj: TProjectPartBase):
         obj.unique_name = self.registry().first_valid_name(obj.unique_name)
@@ -94,7 +105,15 @@ class ProjectPartsManager(Manager, Generic[TProjectPartBase]):
         return self.registry().try_get(unique_name)
 
     def remove(self, unique_name: str):
-        self.registry().unregister(unique_name)
+      obj = self.get(unique_name)
+      if obj is not None:
+        for path in self.get_obj_filepaths(obj):
+          path.unlink(missing_ok=True)
+      self.registry().unregister(unique_name)
+
+    @abstractmethod
+    def get_obj_filepaths(self, obj: TProjectPartBase) -> list[Path]:
+      pass
 
     @abstractmethod
     def registry(self) -> Registry[TProjectPartBase]:

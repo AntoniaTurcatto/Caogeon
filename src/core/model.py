@@ -1,13 +1,7 @@
-from abc import abstractmethod
 from dataclasses import dataclass
-from enum import Enum
+from itertools import count
 from pathlib import Path
 from typing import Any
-
-class ProjectPart(Enum):
-    ASSETS = "assets"
-    ENTITIES = "entities"
-    SCENES = "scenes"
 
 @dataclass
 class ProjectPartBase:
@@ -19,6 +13,12 @@ class ProjectPartBase:
         return {
           "unique_name": str,
         }
+
+@dataclass
+class PropertyChange:
+    obj: ProjectPartBase
+    property_name: str
+    new_value: Any
 
 @dataclass
 class Asset(ProjectPartBase):
@@ -69,6 +69,10 @@ class InstancedEntity:
             "y": int,
         }
 
+    @property
+    def unique_name(self) -> str:
+        return self.id
+
 @dataclass
 class Scene(ProjectPartBase):
     background: Asset | None
@@ -82,6 +86,16 @@ class Scene(ProjectPartBase):
             "entities": list[InstancedEntity],
             "script_path": Path,
         }
+
+    def create_instanced_entity(self, entity: Entity, x: int = 0, y: int = 0) -> InstancedEntity:
+        return InstancedEntity(entity=entity, id=self.find_valid_id(entity.unique_name), x=x, y=y)
+
+    def find_valid_id(self, id: str) -> str:
+        count = 0
+        while id in map(lambda e: e.id, self.entities):
+            count += 1
+            id = f"{id}_{count}"
+        return id
 
 @dataclass
 class WindowSpecs:

@@ -1,11 +1,13 @@
+from enum import Enum
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Generic, cast
 
 from PySide6.QtCore import Qt, Signal, SignalInstance, Slot
 from PySide6.QtGui import QValidator
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
-from editor.validators import PathValidator
+from editor.validators import PathFolderValidator, PathValidator
+from editor.widgets.base_widgets import BaseWidget, PathWidget, SearchMode, StringWidget, TGenericWidget
 
 class BasicDialog(QDialog):
   """
@@ -14,12 +16,12 @@ class BasicDialog(QDialog):
   """
   on_confirm = Signal()
 
-  def __init__(self, width: int, height: int, parent: QWidget | None = None):
+  def __init__(self, width: int = 400, height: int = 100, parent: QWidget | None = None):
     super().__init__(parent)
     self.setModal(True)
+    self.caption_text_if_none = ""
     self.caption_lb = QLabel()
     self.caption_lb.setWordWrap(True)
-
     self.edit_layout = QHBoxLayout()
     self.edit_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.edit_layout.addWidget(self.caption_lb)
@@ -29,10 +31,22 @@ class BasicDialog(QDialog):
 
     main_layout = QVBoxLayout()
     main_layout.addLayout(self.edit_layout)
+
+    for widget in self._extra_layout_widgets():
+      self.edit_layout.addWidget(widget)
+
     main_layout.addLayout(self.btn_layout)
     self.setFixedSize(width, height)
     self.setLayout(main_layout)
     self._init_buttons()
+
+  def _extra_layout_widgets(self) -> list[QWidget]:
+    """For subclasses to override. Will be added to the edit_layout before the buttons, vertically stacked."""
+    return []
+
+  def _clear(self):
+    """For subclasses to override. Will be called before the dialog is shown."""
+    pass
 
   def _init_buttons(self) -> None:
     extras = self._extra_buttons()
@@ -58,9 +72,20 @@ class BasicDialog(QDialog):
 
   @Slot()
   def on_confirm_slot(self) -> None:
+    if not self.is_valid():
+      return
+    self.before_confirm()
     if self.on_confirm is not None:
       self.on_confirm.emit()
     self.close()
+
+  def is_valid(self) -> bool:
+    """For subclasses to override. If true, the dialog will be accepted when the user clicks the confirm button."""
+    return True
+
+  def before_confirm(self):
+    """For subclasses to override. For extra operations before the dialog is confirmed and after is valid."""
+    pass
 
   def disconnect_slot(self, signal: SignalInstance):
     try:
@@ -68,44 +93,63 @@ class BasicDialog(QDialog):
     except RuntimeError:
       pass
 
-  def show(self, caption: str, on_confirm: Callable[[], None] | None = None):
-    self.caption_lb.setText(caption)
+  def show(self, caption: str = "", on_confirm: Callable[[], None] | None = None):
+    self._clear()
+    self.caption_lb.setText(caption if caption != "" else self.caption_text_if_none)
     self.disconnect_slot(self.on_confirm)
     if on_confirm is not None:
       self.on_confirm.connect(on_confirm)
     super().show()
 
-class InputDialog(BasicDialog):
-  """Dialog for inputting text."""
+class ConfirmDialog(BasicDialog):
+  """Dialog for confirming an action."""
 
   on_cancel = Signal()
 
-  def __init__(self, width: int = 400, height: int = 100, parent: QWidget | None = None, validator: QValidator | None = None):
+  def __init__(self, width: int = 400, height: int = 100, parent: QWidget | None = None):
     super().__init__(width, height, parent=parent)
-    self.edit = QLineEdit()
-    self.edit_layout.addWidget(self.edit)
-    if validator is not None:
-      self.edit.setValidator(validator)
 
   def _extra_buttons(self) -> list[tuple[str, Callable[[], None]]]:
     return [("Cancel", self.on_cancel_slot)]
-
-  def get_input(self) -> str:
-    return self.edit.text()
 
   @Slot()
   def on_cancel_slot(self):
     self.on_cancel.emit()
     self.close()
 
+class InputDialog(ConfirmDialog):
+  """Dialog for inputting text."""
+
+  def __init__(self, width: int = 400, height: int = 100, parent: QWidget | None = None, validator: QValidator | None = None):
+    super().__init__(width, height, parent=parent)
+    self.widget = self.create_widget()
+    self.edit_layout.addWidget(self.widget)
+    if validator is not None:
+      self.get_editor().get_line_edit().setValidator(validator)
+
+  def _clear(self):
+    self.get_editor().get_line_edit().clear()
+
+  def create_widget(self, parent: QWidget | None = None) -> QWidget:
+    return StringWidget(parent)
+
+  def get_widget(self) -> QWidget:
+    return self.widget
+
+  def get_editor(self) -> StringWidget:
+    return cast(StringWidget, self.get_widget())
+
+  def get_input(self) -> str:
+    return self.get_editor().get_line_edit().text()
+
   @Slot()
   def on_confirm_slot(self):
-    validator = self.edit.validator()
+    validator = self.get_editor().get_line_edit().validator()
     if validator is not None:
-      state = validator.validate(self.edit.text(), 0)
+      state = validator.validate(self.get_editor().get_line_edit().text(), 0)
       if state != QValidator.State.Acceptable:
-        self.edit.setFocus()
-        self.edit.selectAll()
+        self.get_editor().get_line_edit().setFocus()
+        self.get_editor().get_line_edit().selectAll()
         return
     self.on_confirm.emit()
     self.close()
@@ -115,25 +159,28 @@ class InputDialog(BasicDialog):
     if on_cancel is not None:
       self.on_cancel.connect(on_cancel)
     super().show(caption, on_confirm)
-    self.edit.setFocus()
+    self.get_editor().get_line_edit().setFocus()
 
 class PathDialog(InputDialog):
-  def __init__(self, parent: QWidget | None = None):
-    super().__init__(400, 100, parent=parent, validator=PathValidator())
+  def __init__(self, parent: QWidget | None = None, search_mode: SearchMode = SearchMode.FOLDER):
+    self.search_mode = search_mode
+    super().__init__(400, 100, parent=parent, validator=PathFolderValidator() if search_mode is SearchMode.FOLDER else PathValidator())
     self.setWindowTitle("Select Path")
     self.setVisible(False)
 
+  def create_widget(self, parent: QWidget | None = None) -> QWidget:
+    path_widget = PathWidget(parent)
+    path_widget.search_mode = self.search_mode
+    return path_widget
+
+  def get_editor(self) -> StringWidget:
+    return cast(PathWidget, self.get_widget()).get_editor()
+
   def get_input(self) -> Path:
-    return Path(self.edit.text())
+    return Path(self.get_editor().get_line_edit().text())
 
 class ErrorDialog(BasicDialog):
   def __init__(self, parent: QWidget | None = None):
     super().__init__(400, 100, parent=parent)
     self.setVisible(False)
     self.setWindowTitle("Error")
-
-class DialogManager:
-  def __init__(self):
-    self.path_dialog = PathDialog()
-    self.error_dialog = ErrorDialog()
-    self.input_dialog = InputDialog()
