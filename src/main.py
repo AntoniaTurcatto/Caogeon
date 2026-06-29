@@ -18,6 +18,9 @@ def init_editor(project_mgr: ProjectManager):
   main_window.showMaximized()
   sys.exit(app.exec())
 
+def init_player(proj_mgr: ProjectManager):
+  pass
+
 def main():
   project_mgr = ProjectManager()
   if len(sys.argv) == 1:
