@@ -1,7 +1,24 @@
 # Caogeon
 A 2D game creation platform that uses Python as its scripting language
 
-## ⚙️How to run:
+## Preparing to run:
+### Creating a virtual env
+```bash
+python3 -m venv .env/
+```
+
+### Activating the venv:
+| linux/macos | windows |
+|-----------|-------|
+| source .env/bin/activate | .env\Scripts\activate.bat |
+
+### Instaling dependencies
+Go to the folder of Caogeon wich have a `requirements.txt` file and install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+## ⚙️How to run (with venv activated):
 **Editor:**
 ```bash
 python src/main.py
