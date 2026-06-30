@@ -1,0 +1,11 @@
+{
+  "name": "Projeto Teste",
+  "engine_version": "1.0.0",
+  "window": {
+    "title": "Caogeon - Projeto Teste",
+    "width": 800,
+    "height": 600,
+    "target_fps": 60
+  },
+  "initial_scene_name": "level01"
+}
