@@ -2,9 +2,14 @@
 A 2D game creation platform that uses Python as its scripting language
 
 ## ⚙️How to run:
-editor: python src/main.py
-
-player (must be inside src, test_project too): python -m player.main test_project
+**Editor:**
+```bash
+python src/main.py
+```
+**player (must be inside src, test_project too):** 
+```bash
+python -m player.main test_project
+```
 
 --- 
 
