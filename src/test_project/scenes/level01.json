@@ -1,0 +1,13 @@
+{
+  "unique_name": "level01",
+  "background": "",
+  "entities": [
+    {
+      "id": "my_player_1",
+      "entity_name": "my_player",
+      "x": 368,
+      "y": 268
+    }
+  ],
+  "script_path": "test_project/scenes/scripts/level01.py"
+}

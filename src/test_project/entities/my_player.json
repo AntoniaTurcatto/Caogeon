@@ -1,0 +1,13 @@
+{
+  "unique_name": "my_player",
+  "sprite_name": "player_sprite",
+  "width": 64,
+  "height": 64,
+  "script_path": "test_project/scripts/script.py",
+  "variables": { "health": 100, "speed": 5 },
+  "hooks": {
+    "on_spawn": "initialize",
+    "on_click": "on_clicked",
+    "on_tick": "on_tick"
+  }
+}
