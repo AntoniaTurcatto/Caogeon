@@ -4,7 +4,7 @@ A 2D game creation platform that uses Python as its scripting language
 ## Preparing to run:
 
 ### Python version: 
-3.10+, 3.13 max
+3.13.14 
 
 ### Creating a virtual env
 ```bash
